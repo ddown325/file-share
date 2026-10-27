@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="gg-hold">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#020a18">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23020a18'/%3E%3Cpath d='M16 4 L24 16 L16 28 L8 16 Z' fill='none' stroke='%235fd9ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%239df1ff'/%3E%3C/svg%3E">
-<title>Number Guesser</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E">
+<title>New Tab</title>
 <style>
 /* ============================================================
-   NUMBER GUESSER v4.1 — the lounge remembers two hours
+   NUMBER GUESSER v4.3 — hidden file
    A quiet guessing game on an underground river. The whole cave —
    a fall of light through a crack, a dark pool that mirrors it,
    rock lit only by that light — is painted ONCE at boot into a
@@ -27,11 +27,17 @@
    time against a par pace, with a small streak bonus for coming
    back — a 1–10 win can never out-earn a 1–10000 hunt again. The
    lounge remembers the last two hours of chat for everyone, refresh-
-   proof — and the moment a classroom monitor (GoGuardian & friends)
-   shows itself on this screen, the whole chat system vanishes until
-   it's gone. The page is built thumb-first: drawer chat, real touch
-   targets, no zoom on focus, keyboard-aware panels. Everything lives
-   on ONE shared global board — nothing is kept locally.
+   proof. The tab wears no name — "New Tab", blank icon — the way a
+   hidden file wears none, and the tripwire cannot be pulled from the
+   outside: no chat message, no other player, no refresh can trip it.
+   The moment a monitor shows itself here (GoGuardian injecting with
+   the district's extension ID, or any monitor's name), or the panic
+   key (esc x3) is hit, the page erases itself and swaps tabs with
+   Google Classroom — and stays swapped until the watcher clicks away.
+   The page is built thumb-first: drawer chat,
+   real touch targets, no zoom on focus, keyboard-aware panels.
+   Everything lives on ONE shared global board — nothing is kept
+   locally.
    ============================================================ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{color-scheme:dark;--kb:0px;   /* how much of the screen the keyboard steals */
@@ -251,11 +257,17 @@ body::before{content:"";position:fixed;inset:-10%;z-index:4;pointer-events:none;
   .board{max-height:52vh}
   .chatpanel{max-height:76vh}
 }
-/* ---------- DEAD-MAN SWITCH: a classroom monitor (GoGuardian & co)
-   showing itself on this screen = the entire chat system leaves it.
-   Nothing to see here. ---------- */
-body.gg-watch .chatpanel,body.gg-watch #chatToggle,body.gg-watch #tabLive,
-body.gg-watch .scrim{display:none!important}
+/* ---------- TRIPWIRE ----------
+   html.gg-hold is the boot gate: stamped on the document itself, before
+   any script runs, and lifted only after the first monitor sweep comes
+   back clean. If the sweep trips, the game never paints at all — the
+   page erases itself and the tab becomes Google Classroom. A broken
+   script leaves a blank white page, never a leak. ---------- */
+html.gg-hold{background:#fff}
+html.gg-hold body{visibility:hidden}
+/* settings: one quiet hint line */
+.hint{font-size:11px;color:#5c6f86;line-height:1.5;margin-top:6px;
+  word-break:break-word}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
@@ -343,6 +355,11 @@ body.gg-watch .scrim{display:none!important}
         <span class="dash">–</span>
         <input id="maxInput" type="number" inputmode="numeric" aria-label="Maximum">
       </div>
+      <div class="hr"></div>
+      <label for="monitorIds">Monitor IDs</label>
+      <input id="monitorIds" type="text" autocomplete="off" spellcheck="false" placeholder="from chrome://extensions">
+      <div class="hint">monitor extension IDs (chrome://extensions). the moment one of them shows itself on this page, the tab swaps itself for Google Classroom. nothing anyone types can trip this — not chat, not a refresh. esc ×3 / ctrl shift x / three taps on the status strip does it by hand.</div>
+      <div class="hint" id="monitorHint"></div>
     </div>
   </div>
 
@@ -438,6 +455,7 @@ const board = $('board'), syncBadge = $('syncBadge'),
       btnRow = $('btnRow'), replayBtn = $('replayBtn'),
       settingsOverlay = $('settingsOverlay'), settingsClose = $('settingsClose'),
       usernameInput = $('usernameInput'), minInput = $('minInput'), maxInput = $('maxInput'),
+      monitorIdsInput = $('monitorIds'),
       chatPanel = $('chatPanel'), chatLog = $('chatLog'), chatForm = $('chatForm'),
       chatInput = $('chatInput'), chatSend = $('chatSend'), chatToggle = $('chatToggle'),
       roomBadge = $('roomBadge'), roomOnline = $('roomOnline'), scrim = $('scrim');
@@ -2428,6 +2446,16 @@ const BG = (() => {
   }
 
   /* ---------- the loop + watchdog ladder ---------- */
+  let coverPaused = false;   /* the panic cover halts the cave: zero frames for zero telltales */
+  function pause(){
+    coverPaused = true;
+    if (raf){ cancelAnimationFrame(raf); raf = 0; }
+  }
+  function resume(){
+    if (!coverPaused) return;
+    coverPaused = false;
+    if (!staticMode && !raf && !document.hidden){ lastT = 0; raf = requestAnimationFrame(frame); }
+  }
   function frame(now){
     raf = 0;
     if (!lastT){ lastT = now; raf = requestAnimationFrame(frame); return; }
@@ -2483,7 +2511,7 @@ const BG = (() => {
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden){ if (raf){ cancelAnimationFrame(raf); raf = 0; } }
-    else if (!staticMode && !raf){ lastT = 0; raf = requestAnimationFrame(frame); }
+    else if (!staticMode && !raf && !coverPaused){ lastT = 0; raf = requestAnimationFrame(frame); }
   });
   let rsT = 0;
   window.addEventListener('resize', () => {
@@ -2503,7 +2531,7 @@ const BG = (() => {
     bakeMs: Math.round(bakeMs), frameMs, w: W, h: H, long: longSide,
     ks: Math.round(KS * 100) / 100, webgl: false
   });
-  return {};
+  return { pause, resume };
 })();
 
 /* ======================================================================
@@ -2822,7 +2850,7 @@ const ROOM = (() => {
     });
   }
   async function poll(){
-    if (!started || inFlight || WATCH.active) return;   /* dark: fetch nothing, render nothing */
+    if (!started || inFlight || WATCH.active) return;   /* the room stays silent until the tripwire clears the boot */
     if (CONFIG.ROOM === 'off' && !transport){ setState('offline'); return; }
     inFlight = true;
     let incoming = null;
@@ -2838,7 +2866,7 @@ const ROOM = (() => {
     return incoming;
   }
   async function beat(){
-    if (!started || inFlight || WATCH.active) return;   /* dark: heartbeat pauses too */
+    if (!started || inFlight || WATCH.active) return;   /* the heartbeat waits with it */
     if (CONFIG.ROOM === 'off' && !transport){ setState('offline'); return; }
     inFlight = true;
     try {
@@ -2881,16 +2909,6 @@ const ROOM = (() => {
     reconcileNames();
     renderChat();
   }
-  /* the dead-man switch just tripped — nothing of the lounge may exist
-     on this screen. The shared page keeps the real log; when the
-     watching stops, poll() brings the last two hours right back. */
-  function purge(){
-    chat = [];
-    if (chatInput) chatInput.value = '';
-    unread = 0; chatToggle.textContent = 'chat';
-    document.body.classList.remove('chat-open');
-    chatLog.textContent = '';
-  }
   function start(){
     if (started) return;
     started = true;
@@ -2931,7 +2949,7 @@ const ROOM = (() => {
   });
   renderBadge(); renderChat();
   return {
-    start, poll, beat, send, setPresence, relabel, purge,
+    start, poll, beat, send, setPresence, relabel,
     setTransport: t => { transport = t; },
     feed: doc => { mergeDoc(doc || {}, true); renderChat(); },
     get state(){ return state; },
@@ -2940,58 +2958,162 @@ const ROOM = (() => {
   };
 })();
 /* ======================================================================
-   WATCH — the lounge's dead-man switch. Classroom monitoring suites
-   (GoGuardian and friends) are Chrome extensions: whenever a teacher
-   is watching, they can screenshot or share the active tab. We can't
-   see the teacher — but we can see the extensions. Anything they
-   inject into this page carries a chrome-extension:// URL, and the
-   known monitoring IDs can be probed through icons they expose to
-   the web. The instant any of that shows up, the ENTIRE chat system
-   leaves this screen — panel, toggle, live tab, every rendered line
-   — and stays gone, silently, until the watching stops. The log
-   itself keeps living on the shared page, so the last two hours
-   come right back afterwards. Cost is pocket change: a selector
-   sweep every 4s, a MutationObserver that only wakes the sweep when
-   the DOM actually changes, and three tiny icon probes every 30s.
+   WATCH — the tripwire, honest about what a page can and cannot see.
+   A page cannot see a monitor watching quietly: GoGuardian's screen
+   capture happens inside the extension, and every district gets its
+   own extension IDs, so nothing here guesses and nothing here waits.
+   What a page CAN see is a monitor SHOWING itself here — and the
+   moment one does, this page stops being anything, the way a hidden
+   file doesn't show in a folder:
+     1. EVIDENCE ON THIS PAGE — a URL, stylesheet, resource-log entry
+        or injected id/class wearing a monitor's name (goguardian,
+        securly, lanschool...) or the district's own extension ID
+        (pasted once into settings, from chrome://extensions). Only
+        what sits on THIS device trips it: no chat message, no other
+        player, no shared state, nothing stored across a refresh —
+        nobody can pull this lever from the outside, and nobody in a
+        different class can pull it for you.
+     2. THE PANIC KEY — esc x3, ctrl shift x, or three quick taps on
+        the status strip. For the watchers that stay perfectly quiet.
+   Either one: every element is erased in the same tick the evidence
+   was seen, the title and icon go plain, and the tab is replaced with
+   Google Classroom — where it stays until the watcher clicks away.
+   Coming back re-runs the tripwire first: a quiet page boots the
+   game, an acting one leaves again before painting a thing.
    ====================================================================== */
 const WATCH = (() => {
-  const IDS = (Array.isArray(CONFIG.GG_IDS) && CONFIG.GG_IDS.length)
-    ? CONFIG.GG_IDS.slice() : ['hlgfnjcanmjbcnijifblhgkjicipnghd'];   /* GoGuardian */
-  const PROBE_PATHS = ['/icon.png', '/icon128.png', '/icons/icon128.png'];
-  const GG_RE = new RegExp('goguardian|securly|lanschool|blocksi|' +
-    IDS.map(id => id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'i');
-  let active = false, cause = null, sim = false, mutT = 0, arbBusy = false;
-
-  function urlLooksWatched(u){
-    return typeof u === 'string' && GG_RE.test(u);
-  }
-  /* sweep the DOM, the stylesheets and the recent resource log for
-     anything wearing a monitor's name or ID */
-  function scan(){
-    let hit = false;
+  const CONFIG_IDS = (Array.isArray(CONFIG.GG_IDS) && CONFIG.GG_IDS.length) ? CONFIG.GG_IDS.slice() : [];
+  const PROBE_PATHS = ['/icon.png', '/icon128.png', '/icons/icon128.png', '/icon16.png', '/icons/icon16.png'];
+  const NAMES = 'goguardian|securly|lanschool|blocksi|gaggle|impero|netref|hapara|dyknow|netsupport|lightspeed|guardiansuite';
+  const REDIRECT = 'https://classroom.google.com/';
+  let customIds = [];
+  const loadCustom = () => {
     try {
-      const els = document.querySelectorAll('script[src],iframe[src],link[href],img[src],embed[src],object[data]');
-      for (let i = 0; i < els.length && !hit; i++){
-        const el = els[i];
-        if (urlLooksWatched(el.src || el.href || el.data || '')) hit = true;
+      customIds = String(LS.get('ngMonitorIds') || '').split(/[^a-p]+/i).filter(s => s.length === 32);
+    } catch (e) { customIds = []; }
+  };
+  loadCustom();
+  const allIds = () => CONFIG_IDS.concat(customIds);
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let probeUrlSet = new Set();
+  function rebuildProbeSet(){
+    probeUrlSet = new Set();
+    allIds().forEach(id => PROBE_PATHS.forEach(p => probeUrlSet.add('chrome-extension://' + id + p)));
+  }
+  rebuildProbeSet();
+
+  let hold = true;            /* the boot gate: nothing paints until the first sweep clears */
+  let sim = false;            /* test hook: the full trip, minus the destruction */
+  let trips = 0;              /* how many times evidence was seen here (diagnostic) */
+  let mutT = 0;
+
+  /* ---------- one sweep: pure detection, no side effects ----------
+     Reads only addresses and names — element URLs, stylesheets, the
+     recent resource log, injected ids/classes. Page TEXT is never
+     scanned: the chat lives in the text, and text is anyone's to forge. */
+  function sweep(){
+    let why = null;
+    try {
+      const named = new RegExp(NAMES, 'i');
+      const ids = allIds();
+      const idRe = ids.length ? new RegExp('^chrome-extension://(' + ids.map(esc).join('|') + ')/', 'i') : null;
+      /* 1. element URLs — an extension that injects content here
+            wears its address on whatever it injects */
+      const els = document.querySelectorAll('script[src],iframe[src],link[href],img[src],embed[src],object[data],source[src],video[src],audio[src]');
+      for (let i = 0; i < els.length; i++){
+        const u = els[i].src || els[i].href || els[i].data || '';
+        if (!u) continue;
+        if ((idRe && idRe.test(u)) || named.test(u)){ why = u.slice(0, 120); break; }
       }
-      if (!hit){
+      /* 2. stylesheets */
+      if (!why){
         const sheets = document.styleSheets;
-        for (let i = 0; i < sheets.length; i++)
-          if (urlLooksWatched(sheets[i] && sheets[i].href)) { hit = true; break; }
+        for (let i = 0; i < sheets.length; i++){
+          const h = sheets[i] && sheets[i].href;
+          if (h && ((idRe && idRe.test(h)) || named.test(h))){ why = h.slice(0, 120); break; }
+        }
       }
-      if (!hit){
+      /* 3. the recent resource log — minus our own probe attempts */
+      if (!why){
         const res = performance.getEntriesByType('resource');
-        for (let i = res.length - 1; i >= res.length - 300 && i >= 0; i--)
-          if (urlLooksWatched(res[i].name)) { hit = true; break; }
+        for (let i = res.length - 1; i >= res.length - 300 && i >= 0; i--){
+          const n = res[i].name;
+          if (probeUrlSet.has(n)) continue;
+          if ((idRe && idRe.test(n)) || named.test(n)){ why = n.slice(0, 120); break; }
+        }
+      }
+      /* 4. ids + classes: injected banners usually wear the name */
+      if (!why){
+        const all = document.querySelectorAll('[id],[class]');
+        for (let i = 0; i < all.length; i++){
+          const el = all[i];
+          const s = (el.id || '') + ' ' + String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className || '');
+          if (s && named.test(s)){ why = 'id/class: ' + s.slice(0, 80); break; }
+        }
       }
     } catch (e) {}
-    return hit;
+    return why;
   }
-  /* a monitoring extension that exposes any icon to the web lights up here */
+
+  /* ---------- the exit: stop being anything ----------
+     Same tick as the sighting — a hidden file doesn't half-show while
+     the folder closes. Mute, freeze, erase every element, then leave
+     for Google Classroom; the meta refresh is the spare key in case
+     the tab ever refuses to navigate. */
+  function vanish(dry){
+    if (dry || sim) return REDIRECT;
+    try { Sfx.setMuted(true); } catch (e) {}
+    try { BG.pause(); } catch (e) {}
+    try {
+      document.documentElement.classList.remove('gg-hold');
+      document.documentElement.innerHTML =
+        '<head><meta charset="utf-8"><title>Google Classroom</title>' +
+        '<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 1 1%27%3E%3C/svg%3E">' +
+        '<meta http-equiv="refresh" content="0; url=' + REDIRECT + '"></head>' +
+        '<body style="margin:0;background:#fff"></body>';
+    } catch (e) {}
+    try { location.replace(REDIRECT); } catch (e) {}
+    return REDIRECT;
+  }
+
+  /* evidence found -> gone. Returns what was seen, for the caller. */
+  function check(){
+    const why = sweep();
+    if (why){ trips++; vanish(); }
+    return why;
+  }
+
+  /* ---------- the panic key: esc x3 / ctrl shift x / three taps ---------- */
+  let escT = [];
+  window.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.shiftKey && (e.code === 'KeyX' || e.key === 'x' || e.key === 'X')){
+      e.preventDefault(); vanish(); return;
+    }
+    if (e.key === 'Escape'){
+      const t = Date.now();
+      escT = escT.filter(x => t - x < 1200); escT.push(t);
+      if (escT.length >= 3){ escT = []; vanish(); }
+    }
+  }, true);
+  function taps(el, fn, touchOnly){
+    if (!el) return;
+    let n = 0, last = 0;
+    el.addEventListener('pointerdown', e => {
+      if (touchOnly && e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      const t = Date.now();
+      n = (t - last < 1200) ? n + 1 : 1; last = t;
+      if (n >= 3){ n = 0; fn(); }
+    });
+  }
+  taps(document.querySelector('.statusline'), vanish, true);  /* phones: three quick taps on the status strip */
+
+  /* ---------- settings: what the probe knows, said plainly ---------- */
+  /* installed is not watching — this only answers "is it on this
+     device", for the hint under the ID box. It never trips anything. */
   function probe(){
-    if (!IDS.length) return Promise.resolve(false);
-    return Promise.all(IDS.map(id => Promise.all(PROBE_PATHS.map(p => new Promise(res => {
+    const ids = allIds();
+    if (!ids.length) return Promise.resolve(false);
+    return Promise.all(ids.map(id => Promise.all(PROBE_PATHS.map(p => new Promise(res => {
       const im = new Image();
       let done = false;
       const finish = ok => { if (done) return; done = true; im.onload = im.onerror = null; res(ok); };
@@ -2999,61 +3121,52 @@ const WATCH = (() => {
       im.onerror = () => finish(false);
       setTimeout(() => finish(false), 2500);
       im.src = 'chrome-extension://' + id + p;
-    }))))).then(rows => rows.some(r => r.some(Boolean)));
+    }))))).then(rows => rows.some(r => r.some(Boolean))).catch(() => false);
   }
-  function setWatch(on, why){
-    if (on === active){ if (on && why) cause = why; return; }
-    active = on;
-    cause = on ? why : null;
-    document.body.classList.toggle('gg-watch', on);
-    if (on){
-      /* nothing of the lounge on screen: the tab flips off Live, the
-         drawer closes, every rendered line is wiped */
-      if (typeof activeTab !== 'undefined' && activeTab === 'live') showTab('global');
-      try { ROOM.purge(); } catch (e) {}
-    } else {
-      try { ROOM.poll(); } catch (e) {}   /* coast is clear: the room comes back */
-    }
+  async function status(){
+    const el = document.getElementById('monitorHint');
+    if (!el) return;
+    const n = allIds().length;
+    if (!n){ el.textContent = ''; return; }
+    el.textContent = n + (n === 1 ? ' id saved — checking this device…' : ' ids saved — checking this device…');
+    const found = await probe();
+    const live = document.getElementById('monitorHint');
+    if (live) live.textContent = found
+      ? 'extension is installed on this device. that only matters if it shows itself on this page — then the tab leaves.'
+      : 'nothing answering on this device.';
   }
-  /* the full decision — scan AND probe. Only this may lift the dark */
-  async function arbitrate(){
-    if (arbBusy) return;
-    arbBusy = true;
-    let why = null;
-    if (sim) why = 'sim';
-    else if (scan()) why = 'scan';
-    else if (await probe()) why = 'probe';
-    else if (scan()) why = 'scan';   /* re-check after the probe's delay */
-    setWatch(!!why, why);
-    arbBusy = false;
+  function setIds(){
+    loadCustom(); rebuildProbeSet();
+    check();
+    status();
   }
-  /* the cheap loop — sweeps only, and only ever darkens: a monitor
-     appearing must never wait on a probe */
-  function tick(){
-    if (sim){ setWatch(true, 'sim'); return; }
-    if (scan()) setWatch(true, 'scan');
-  }
+
+  /* ---------- boot, and the standing watch ---------- */
   function start(){
     if (start.done) return;
     start.done = true;
-    arbitrate();
-    setInterval(() => { if (!document.hidden) tick(); }, 4000);
-    setInterval(() => { if (!document.hidden) arbitrate(); }, 30000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden){ tick(); arbitrate(); } });
+    try { sessionStorage.removeItem('ngCover'); } catch (e) {}   /* the old refresh-memory is retired for good */
+    const why = check();               /* the gate: no game paints until the page proves clean */
+    if (why && !sim) throw new Error('watched');   /* boot ends here — the tab is already leaving */
+    hold = false;
+    document.documentElement.classList.remove('gg-hold');
+    setInterval(() => { if (!document.hidden) check(); }, 4000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
     new MutationObserver(() => {
       const now = Date.now();
       if (now - mutT < 1000) return;
       mutT = now;
-      if (sim || scan()) setWatch(true, sim ? 'sim' : 'scan');
+      check();
     }).observe(document.documentElement, { childList: true, subtree: true });
   }
   return {
-    start, arbitrate,
-    get active(){ return active; },
-    simulate(on){ sim = !!on; if (sim) setWatch(true, 'sim'); else arbitrate(); }   /* test hook */
+    start, sweep, check, vanish, setIds, status,
+    get trips(){ return trips; },    /* how many sightings — a diagnostic, nothing more */
+    get hold(){ return hold; },       /* the lounge's question: speak yet? */
+    get active(){ return hold; },     /* same answer, older name */
+    simulate(on){ sim = !!on; }       /* test hook: arm everything, destroy nothing */
   };
 })();
-
 /* ============================ the round log ============================ */
 function clearLog(){ logBox.textContent = ''; }
 function addLog(msg){ /* newest line types itself out; older lines fade back */
@@ -3188,6 +3301,7 @@ wireX(settingsClose, settingsOverlay);
 settingsBtn.addEventListener('click', () => {
   usernameInput.value = username; minInput.value = min; maxInput.value = max;
   openOverlay(settingsOverlay);
+  try { WATCH.status(); } catch (e) {}
 });
 usernameInput.addEventListener('input', () => {
   username = usernameInput.value.trim() || 'Player';
@@ -3209,6 +3323,15 @@ function commitRange(){
 [minInput, maxInput].forEach(inp => {
   inp.addEventListener('change', commitRange);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ inp.blur(); } });
+});
+/* monitor IDs: paste once from chrome://extensions — the moment one of
+   them shows itself on this page, the tab swaps itself for Google
+   Classroom. Free-text field — anything that isn't a 32-char id is
+   simply ignored */
+monitorIdsInput.value = LS.get('ngMonitorIds', '') || '';
+monitorIdsInput.addEventListener('change', () => {
+  LS.set('ngMonitorIds', monitorIdsInput.value.trim());
+  try { WATCH.setIds(); } catch (e) {}
 });
 
 /* ============================ guessing ============================ */
@@ -3339,13 +3462,13 @@ usernameDisplay.textContent = username;
 LS.del('Your fault'); LS.del('realnameSavDa'); LS.del('realnameTriggered'); /* scrub legacy keys from retired modes */
 LS.del('ngBoardCode'); LS.del('numberGuesserLeaderboard');  /* retired private/local boards — one global board now */
 LS.del('ngPendingV2'); LS.del('ngPendingV3');   /* old-economy queues must never flush into the v4 board */
+WATCH.start();                    /* the tripwire sweeps before anything paints or speaks */
+if (CONFIG.ROOM !== 'off') ROOM.start();
 renderLists();
 SYNC.pull();
 setInterval(() => { if (!document.hidden) SYNC.pull(); }, 20000);
 window.addEventListener('online', () => SYNC.pull());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) SYNC.pull(); });
-WATCH.start();                    /* the dead-man switch arms before the lounge speaks */
-if (CONFIG.ROOM !== 'off') ROOM.start();
 resetSecretNumber();
 addLog(`thinking of a number from ${formatNum(Math.min(min, max))} to ${formatNum(Math.max(min, max))}. ${perfectFloor()} ${perfectFloor() === 1 ? 'guess' : 'guesses'} if you're good.`);
 setInterval(() => { if (!gamePaused) updateStatus(); }, 1000);
