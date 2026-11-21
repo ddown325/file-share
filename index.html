@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+  PAID IN FULL  -  an incremental dice game about owing money
+=====================================================================
+  TUNABLE NUMBERS  (all live in the CONFIG object at the top of the script)
+  - START_DEBT ................ 4200        The Balance at the start of Chapter 1
+  - DEBT_GROWTH_PER_CHAPTER ... x2.5        Each Rebirth makes the next statement bigger
+  - START_ROLL_VALUE .......... $0.01       Value of one pip on one die
+  - SPLIT_TO_BALANCE .......... 50%         Share of each payout that pays The Balance (rest = cash)
+  - COST.<upgrade> ............ base * growth^level   (shop cost curve, per upgrade)
+  - REDLINE.baseFill .......... 1.6         Meter % added per roll (x stance risk, x cooling)
+  - REDLINE.baseDecay ......... 1.0 / sec   Passive cool-down of the meter
+  - CALL.* .................... interest rate, income cap, fee ratio, protection
+  - BONUS.baseChance .......... 0.4% / roll Double Down trigger chance (+0.25% per upgrade level)
+  - BONUS.unlockRolls ......... 100         Rolls before Double Down can appear (chapter 1)
+  - AUTO.* .................... Autopay passive income
+  - INK.* ..................... Fresh Ink perk strengths
+=====================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b1918">
+<title>Paid in Full</title>
+<style>
+:root{
+  --bg:#1b1918;--bg2:#2a2523;--bg3:#363030;--line:#0c0a09;
+  --paper:#efe6cd;--paper2:#e0d4b3;--ink:#17120e;
+  --yel:#ffc933;--red:#ff5757;--pred:#b8101c;--grn:#4be08a;--pgrn:#17703a;
+  --fd:"Courier New",ui-monospace,Menlo,Consolas,monospace;
+  --fb:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:#f3ead7;font-family:var(--fb);overflow-x:hidden}
+body{min-height:100dvh;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 2px,transparent 2px 4px);-webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.hidden{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 10px;max-width:1100px;margin:0 auto;min-height:56px}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.logo{font-family:var(--fd);font-weight:900;letter-spacing:.08em;font-size:1.15rem;color:var(--yel);text-shadow:2px 2px 0 #000;white-space:nowrap}
+.tag{font-family:var(--fd);font-weight:900;font-size:.7rem;background:var(--paper);color:var(--ink);padding:3px 7px;border:2px solid #000;border-radius:4px;white-space:nowrap}
+.topbtns{display:flex;gap:8px}
+.ibtn{width:46px;height:46px;border:3px solid #000;background:var(--bg3);border-radius:10px;display:grid;place-items:center;box-shadow:3px 3px 0 #000;padding:0}
+.ibtn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.ibtn svg{width:26px;height:26px;fill:none;stroke:#f3ead7;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ibtn.off{background:#5a2020}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:12px;padding:0 10px 48px;max-width:580px;margin:0 auto}
+.main{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+.shop{grid-column:1;grid-row:2;min-width:0;display:flex;flex-direction:column;gap:18px}
+.meterCol{grid-column:2;grid-row:1/3;position:sticky;top:8px;height:calc(100dvh - 76px);min-height:300px;align-self:start}
+@media(min-width:900px){
+  .grid{grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr);max-width:1120px;gap:18px}
+  .main{grid-column:1;grid-row:1}.meterCol{grid-column:2;grid-row:1}.shop{grid-column:3;grid-row:1}
+}
+
+/* ---------- envelope (balance) ---------- */
+.env{position:relative;background:var(--paper);color:var(--ink);border:4px solid #000;border-radius:6px;box-shadow:5px 5px 0 #000;overflow:hidden}
+.flap{height:34px;background:var(--paper2);clip-path:polygon(0 0,100% 0,50% 100%);border-bottom:0;opacity:.9}
+.env-in{padding:0 14px 14px;margin-top:-18px;position:relative}
+.lab{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.72rem;font-weight:800;margin-bottom:8px}
+.tagred{font-family:var(--fd);background:var(--pred);color:#fff;padding:3px 8px;border-radius:3px;white-space:nowrap;letter-spacing:.06em}
+.tagred.ok{background:var(--pgrn)}
+#creditor{font-family:var(--fd);text-align:right;line-height:1.15;opacity:.8}
+.balwrap{display:flex;justify-content:center;align-items:center;min-height:68px;padding:6px 0}
+#balCv{image-rendering:pixelated;max-width:100%}
+#balCv.dip{animation:dip .35s ease-out}
+@keyframes dip{0%{transform:translateY(-6px) scale(1.03)}100%{transform:none}}
+.bar{height:16px;border:3px solid #000;background:#cdbf9c;border-radius:4px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(45deg,#1f9a52 0 8px,#17703a 8px 16px);transition:width .2s}
+.barlab{display:flex;justify-content:space-between;font-family:var(--fd);font-weight:800;font-size:.78rem;margin-top:5px;gap:8px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.chip{background:var(--ink);color:var(--yel);border-radius:6px;padding:6px 6px;text-align:center;min-width:0}
+.chip small{display:block;font-size:.6rem;letter-spacing:.08em;color:#d9cfb5;font-weight:800}
+.chip b{display:block;font-family:var(--fd);font-size:1.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- tray ---------- */
+.tray{position:relative;background:var(--bg2);border:4px solid #000;border-radius:10px;box-shadow:5px 5px 0 #000;padding:10px 10px 12px;overflow:hidden}
+.tray::before{content:"";position:absolute;inset:6px;border:2px dashed rgba(255,201,51,.28);border-radius:6px;pointer-events:none}
+.dice{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;min-height:100px;padding:16px 6px 8px;align-items:center;position:relative}
+.die{width:var(--ds,72px);height:var(--ds,72px)}
+.die canvas{width:100%;height:100%;image-rendering:pixelated;display:block;filter:drop-shadow(0 5px 0 rgba(0,0,0,.55))}
+.die.tumble{animation:tumble .44s cubic-bezier(.3,.7,.4,1) both}
+.die.land{animation:land .22s ease-out}
+@keyframes tumble{0%{transform:translateY(0) rotate(0)}28%{transform:translateY(-34px) rotate(150deg)}58%{transform:translateY(0) rotate(310deg)}76%{transform:translateY(-12px) rotate(350deg)}100%{transform:translateY(0) rotate(360deg)}}
+@keyframes land{0%{transform:scale(1.18,.82)}55%{transform:translateY(-7px) scale(.97,1.04)}100%{transform:none}}
+.floats{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+.fl{position:absolute;font-family:var(--fd);font-weight:900;font-size:1rem;white-space:nowrap;transform:translateX(-50%);animation:floatUp 1.05s ease-out forwards;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 3px 0 #000}
+.fl.cash{color:var(--yel)}.fl.paid{color:var(--grn)}.fl.bad{color:var(--red);font-size:1.3rem}.fl.tag2{color:#fff}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-56px) scale(1)}}
+.memo{min-height:2.6em;text-align:center;font-size:.86rem;line-height:1.3;color:#e9dfc6;padding:2px 6px 8px}
+.stances{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.st{min-height:62px;padding:6px 3px;background:var(--bg3);border:3px solid #000;border-radius:8px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:1px;font-size:.66rem;line-height:1.15;color:#e9dfc6}
+.st b{font-family:var(--fd);font-size:.78rem;color:#fff}
+.st .heat{font-family:var(--fd);letter-spacing:.02em}
+.st.on{background:var(--yel);color:#2b1d00;box-shadow:inset 0 0 0 3px #fff}
+.st.on b{color:#000}
+.roll{width:100%;min-height:80px;font-family:var(--fd);font-weight:900;font-size:2.1rem;letter-spacing:.14em;background:var(--yel);color:#1a1200;border:4px solid #000;border-radius:12px;box-shadow:0 7px 0 #000;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.roll small{font-size:.7rem;letter-spacing:.04em;font-weight:800;margin-top:6px;opacity:.85;font-family:var(--fb)}
+.roll:active:not(.dis){transform:translateY(6px);box-shadow:0 1px 0 #000}
+.roll.dis{background:#6d6459;color:#2a2520;box-shadow:0 7px 0 #000;cursor:default}
+
+/* ---------- banner (rebirth) ---------- */
+.banner{background:var(--paper);color:var(--ink);border:4px solid #000;border-radius:8px;box-shadow:5px 5px 0 #000;padding:14px;text-align:center;animation:pulseB 1.6s ease-in-out infinite}
+@keyframes pulseB{50%{transform:scale(1.015)}}
+.banner h2{margin:0 0 4px;font-family:var(--fd);font-size:1.4rem;color:var(--pgrn);letter-spacing:.05em}
+.banner p{margin:0 0 10px;font-size:.88rem}
+.bigbtn{width:100%;min-height:56px;border:4px solid #000;border-radius:10px;background:var(--pgrn);color:#fff;font-family:var(--fd);font-weight:900;font-size:1.05rem;letter-spacing:.05em;box-shadow:0 5px 0 #000;padding:8px 10px}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 1px 0 #000}
+.bigbtn.y{background:var(--yel);color:#1a1200}
+.bigbtn.r{background:var(--pred)}
+.bigbtn.g{background:#3a3532}
+.bigbtn.dis{background:#6d6459;color:#2a2520;cursor:not-allowed}
+
+/* ---------- voicemail (manila envelope) ---------- */
+.manila{background:#d9b777;color:#2b1d0a;border:4px solid #000;border-radius:6px;box-shadow:5px 5px 0 #000;padding:10px 12px 12px}
+.manila h3{margin:0 0 4px;font-family:var(--fd);font-size:.95rem;letter-spacing:.05em;display:flex;justify-content:space-between;gap:8px}
+.manila .sub{font-size:.74rem;margin:0 0 8px;opacity:.85}
+.slip{background:#fbf5e4;border:2px solid #000;border-radius:4px;padding:8px;margin-top:8px}
+.slip q{display:block;font-size:.88rem;line-height:1.3;quotes:none;font-style:italic}
+.slip .who{font-family:var(--fd);font-size:.68rem;font-weight:800;opacity:.7;margin-bottom:3px}
+.slip .acts{display:flex;gap:6px;margin-top:8px}
+.slip button{flex:1;min-height:44px;border:3px solid #000;border-radius:6px;font-family:var(--fd);font-weight:800;font-size:.72rem;background:#fff;color:#000;padding:4px}
+.slip button.p{background:var(--yel)}
+.slip button.no{background:repeating-linear-gradient(45deg,#cfc3a1 0 6px,#e0d4b3 6px 12px);color:#5c5036}
+.hold{height:12px;border:2px solid #000;background:#ddd;margin-top:8px;border-radius:3px;overflow:hidden}
+.hold i{display:block;height:100%;width:0;background:repeating-linear-gradient(45deg,#2b2b2b 0 6px,#555 6px 12px)}
+.empty{font-size:.82rem;font-style:italic;opacity:.8;padding:4px 0}
+
+/* ---------- receipt (shop) ---------- */
+.rc-wrap{filter:drop-shadow(5px 5px 0 #000)}
+.receipt{position:relative;background:var(--paper);color:var(--ink);font-family:var(--fd);padding:16px 14px 14px;margin-bottom:14px}
+.receipt::after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:14px;background:radial-gradient(circle at 50% 0,var(--paper) 7px,transparent 7.6px) 0 0/14px 14px repeat-x}
+.receipt.ink{background:#e6d9a6}
+.receipt.ink::after{background:radial-gradient(circle at 50% 0,#e6d9a6 7px,transparent 7.6px) 0 0/14px 14px repeat-x}
+.rc-head{text-align:center;border-bottom:2px dashed #8a7b5a;padding-bottom:10px;margin-bottom:6px}
+.rc-head b{display:block;font-size:1.05rem;letter-spacing:.1em}
+.rc-head small{font-size:.7rem;opacity:.75}
+.line{padding:10px 0;border-bottom:1px dotted #9d8e6c}
+.line.locked{opacity:.65}
+.l-top{display:flex;align-items:flex-end;gap:4px;font-weight:900;font-size:.95rem}
+.l-name{min-width:0}
+.l-dots{flex:1;border-bottom:2px dotted #8a7b5a;margin:0 4px 5px;min-width:10px}
+.l-price{white-space:nowrap}
+.l-desc{font-family:var(--fb);font-size:.76rem;line-height:1.3;margin:3px 0 2px;opacity:.85}
+.l-eff{font-size:.72rem;font-weight:800;color:#5b4a1c}
+.l-bot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.l-lvl{font-size:.72rem;font-weight:800}
+.pay{min-height:46px;min-width:112px;padding:4px 12px;font-family:var(--fd);font-weight:900;font-size:.88rem;background:var(--yel);color:#000;border:3px solid #000;border-radius:6px;box-shadow:3px 3px 0 #000}
+.pay:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.pay.no{background:repeating-linear-gradient(45deg,#cfc3a1 0 6px,#e0d4b3 6px 12px);color:#5c5036}
+.pay.max{background:var(--pgrn);color:#fff}
+.pay.lock{background:transparent;border-style:dashed;color:#6e5f3b;box-shadow:none}
+.rc-foot{text-align:center;font-size:.7rem;margin-top:12px;opacity:.75;line-height:1.4}
+.rc-total{display:flex;justify-content:space-between;font-weight:900;margin-top:10px;border-top:2px dashed #8a7b5a;padding-top:8px;font-size:.88rem}
+
+/* ---------- meter ---------- */
+.meter{height:100%;display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--bg2);border:3px solid #000;border-radius:10px;padding:6px 3px 8px;box-shadow:3px 3px 0 #000}
+.meter[data-zone=hot]{animation:redpulse .5s ease-in-out infinite alternate}
+@keyframes redpulse{from{border-color:#000}to{border-color:#ff5757}}
+.m-read{font-family:var(--fd);font-weight:900;font-size:.92rem}
+.m-state{display:flex;flex-direction:column;align-items:center;font-family:var(--fd);font-weight:900;font-size:.58rem;line-height:1.1}
+.m-state b{font-size:1rem}
+.m-track{position:relative;flex:1;width:28px;background:#0d0b0a;border:3px solid #000;border-radius:6px;overflow:hidden;min-height:120px}
+.m-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(0deg,#ffc933,#ff9f1c 60%,#ff4234);transition:height .15s}
+.m-fill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.4) 0 2px,transparent 2px 10px)}
+.meter[data-zone=hot] .m-fill{background:repeating-linear-gradient(45deg,#ff4234 0 7px,#7d0d0d 7px 13px)}
+.m-mark{position:absolute;left:0;right:0;text-align:center;font-size:.72rem;font-weight:900;color:#fff;text-shadow:0 0 3px #000,1px 1px 0 #000;line-height:1;pointer-events:none}
+.m-line{position:absolute;left:0;right:0;height:0;border-top:2px solid rgba(255,255,255,.5)}
+.m-title{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--fd);font-weight:900;font-size:.72rem;letter-spacing:.22em;color:#d9cfb5}
+
+/* ---------- toast ---------- */
+.toasts{position:fixed;top:60px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:80;pointer-events:none;padding:0 10px}
+.toast{max-width:min(94vw,440px);background:#f3ead7;color:#17120e;border:3px solid #000;box-shadow:3px 3px 0 #000;border-radius:8px;padding:8px 12px;font-size:.84rem;line-height:1.3;animation:toastIn .25s ease-out,toastOut .3s ease-in 3.2s forwards}
+.toast.col{background:#2c2230;color:#f3ead7;border-color:#c9a8ff}
+.toast b{font-family:var(--fd)}
+@keyframes toastIn{from{transform:translateY(-14px);opacity:0}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
+
+/* ---------- modal ---------- */
+.mwrap{position:fixed;inset:0;z-index:60;background:rgba(5,4,3,.78);display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow-y:auto;animation:fade .2s}
+.mwrap::before,.mwrap::after{content:"";margin:auto 0}
+.sheet{width:100%;max-width:460px;margin:auto;background:var(--paper);color:var(--ink);border:4px solid #000;border-radius:8px;box-shadow:6px 6px 0 #000;padding:16px;animation:sheetIn .25s ease-out;position:relative;font-family:var(--fb)}
+@keyframes sheetIn{from{transform:translateY(24px) scale(.96);opacity:0}}
+@keyframes fade{from{opacity:0}}
+.sheet h2{font-family:var(--fd);margin:0 0 6px;font-size:1.3rem;letter-spacing:.04em}
+.sheet p{margin:0 0 10px;font-size:.92rem;line-height:1.4}
+.sheet .quote{font-style:italic;background:#fbf5e4;border-left:5px solid #000;padding:8px 10px;margin:8px 0 12px}
+.sheet .btns{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.callhead{font-family:var(--fd);font-weight:900;background:var(--pred);color:#fff;margin:-16px -16px 12px;padding:10px 14px;border-bottom:4px solid #000;letter-spacing:.06em;display:flex;gap:8px;align-items:center}
+.callhead.ring span:first-child{animation:ringshake .5s infinite}
+@keyframes ringshake{0%,100%{transform:rotate(0)}25%{transform:rotate(-18deg)}75%{transform:rotate(18deg)}}
+.bd{width:100%;border-collapse:collapse;font-family:var(--fd);font-size:.8rem;margin:6px 0}
+.bd td{padding:4px 0;border-bottom:1px dotted #8a7b5a;vertical-align:top}
+.bd td:last-child{text-align:right;font-weight:900;white-space:nowrap;padding-left:8px}
+.bd tr.tot td{border-bottom:0;border-top:2px solid #000;font-size:.95rem;padding-top:6px}
+.bustnum{font-family:var(--fd);font-weight:900;font-size:2.6rem;color:var(--pred);text-align:center;line-height:1.1;margin:4px 0}
+.bustlab{text-align:center;font-weight:800;font-size:.85rem}
+.stamp{position:absolute;right:10px;top:70px;font-family:var(--fd);font-weight:900;font-size:1.7rem;letter-spacing:.06em;color:#b8101c;border:5px solid #b8101c;border-radius:6px;padding:4px 12px;transform:rotate(-12deg);opacity:0;pointer-events:none;background:rgba(255,255,255,.2);mix-blend-mode:multiply}
+.stamp.green{color:var(--pgrn);border-color:var(--pgrn)}
+.stamp.slam{animation:slam .45s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes slam{0%{opacity:0;transform:rotate(-12deg) scale(3.2)}60%{opacity:1;transform:rotate(-12deg) scale(.92)}100%{opacity:.92;transform:rotate(-12deg) scale(1)}}
+.cb{list-style:none;margin:6px 0 8px;padding:0;font-family:var(--fd);font-size:.76rem;line-height:1.35}
+.cb li{padding:5px 0 5px 18px;border-bottom:1px dotted #8a7b5a;position:relative}
+.cb li::before{content:"↺";position:absolute;left:0;font-weight:900}
+.srow{display:flex;justify-content:space-between;gap:8px;font-family:var(--fd);font-weight:900;font-size:.9rem;padding:4px 0}
+.tgl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dotted #8a7b5a;font-weight:700}
+.tgl button{min-width:92px;min-height:44px;border:3px solid #000;border-radius:6px;background:var(--yel);color:#000;font-family:var(--fd);font-weight:900}
+.tgl button.off{background:#cfc3a1}
+
+/* ---------- double down ---------- */
+.dd{position:fixed;inset:0;z-index:70;background:radial-gradient(circle at 50% 30%,#1d0f2c 0,#07040c 75%);display:flex;flex-direction:column;animation:fade .3s;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.dd-top{display:flex;align-items:center;justify-content:center;gap:18px;padding:14px 10px 4px}
+#ddRing{width:128px;height:128px}
+.dd-stats{font-family:var(--fd);font-weight:900;font-size:.85rem;color:#cbb8e6;letter-spacing:.06em;display:flex;flex-direction:column;gap:6px}
+.dd-stats b{display:block;font-size:1.7rem;color:var(--yel);text-shadow:2px 2px 0 #000}
+.dd-field{position:relative;flex:1;margin:6px 10px 14px;border:3px dashed rgba(255,201,51,.3);border-radius:14px;overflow:hidden;min-height:260px}
+.dd-intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--fd);font-weight:900;font-size:2.4rem;color:var(--yel);text-shadow:4px 4px 0 #000;text-align:center;animation:introPulse .5s ease-in-out infinite alternate;z-index:5;pointer-events:none;padding:10px}
+.dd-intro small{font-size:1rem;color:#fff;margin-top:8px}
+@keyframes introPulse{from{transform:scale(.94)}to{transform:scale(1.06)}}
+.tgt{position:absolute;touch-action:manipulation;animation:tIn .14s ease-out}
+@keyframes tIn{from{transform:scale(.2);opacity:0}}
+.tgt .coin{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff6c2,#ffc933 48%,#d58f00);border:5px solid #fff;display:grid;place-items:center;font-family:var(--fd);font-weight:900;font-size:2.4rem;color:#6b4300;box-shadow:0 0 26px 6px rgba(255,201,51,.6),0 6px 0 #7a5200}
+.tgt.big .coin{background:radial-gradient(circle at 35% 28%,#e5fff0,#4be08a 50%,#17a050);color:#05381b;box-shadow:0 0 30px 8px rgba(75,224,138,.6),0 6px 0 #0b5a2c;font-size:3rem}
+.tgt .ring{position:absolute;inset:-14px;border:4px solid #fff;border-radius:50%;animation:ringShrink linear forwards;pointer-events:none}
+@keyframes ringShrink{from{transform:scale(1.7);opacity:.25}to{transform:scale(1);opacity:1}}
+.tgt.pop{animation:tPop .2s ease-out forwards;pointer-events:none}
+@keyframes tPop{to{transform:scale(1.7);opacity:0}}
+.tgt.miss{animation:tMiss .25s ease-in forwards;pointer-events:none}
+@keyframes tMiss{to{transform:scale(.4);opacity:0;filter:grayscale(1)}}
+.ddsum{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:14px;background:rgba(5,3,10,.7);overflow-y:auto;z-index:6}
+.ddsum .sheet{margin:auto}
+
+/* ---------- shake ---------- */
+.shake{animation:shk .45s linear}
+@keyframes shk{0%,100%{transform:none}10%{transform:translate(-7px,3px)}20%{transform:translate(6px,-4px)}30%{transform:translate(-6px,-3px)}40%{transform:translate(5px,4px)}50%{transform:translate(-4px,2px)}60%{transform:translate(4px,-2px)}70%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+@media(prefers-reduced-motion:reduce){.shake,.banner,.dd-intro{animation:none}}
+</style>
+</head>
+<body>
+<div id="shaker">
+  <header class="top">
+    <div class="brand"><span class="logo">PAID IN FULL</span><span class="tag" id="chTag">CH. 1</span></div>
+    <div class="topbtns">
+      <button class="ibtn" id="muteBtn" aria-label="Mute sound" title="Mute"></button>
+      <button class="ibtn" id="setBtn" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="main">
+      <!-- THE BALANCE -->
+      <div class="env" id="balPanel">
+        <div class="flap"></div>
+        <div class="env-in">
+          <div class="lab"><span class="tagred" id="balTag">▼ THE BALANCE · PAST DUE</span><span id="creditor"></span></div>
+          <div class="balwrap" id="balWrap"><canvas id="balCv" width="10" height="10"></canvas></div>
+          <span class="sr" id="balSr" aria-live="off"></span>
+          <div class="bar" role="progressbar" aria-label="Debt paid"><i id="barFill"></i></div>
+          <div class="barlab"><span id="pctTxt">0% paid</span><span id="paidTxt">✔ Paid $0.00</span></div>
+          <div class="chips">
+            <div class="chip"><small>CASH ●</small><b id="chipCash">$0.00</b></div>
+            <div class="chip"><small>PER PIP</small><b id="chipPip">$0.01</b></div>
+            <div class="chip"><small>AVG ROLL</small><b id="chipRoll">$0.035</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REBIRTH BANNER -->
+      <div class="banner hidden" id="rebirthBanner">
+        <h2>✔ PAID IN FULL</h2>
+        <p id="bannerTxt">The Balance is $0.00. The Collector is, briefly, speechless.</p>
+        <button class="bigbtn" id="rebirthBtn">REBIRTH: SECOND WIND</button>
+      </div>
+
+      <!-- DICE TRAY -->
+      <div class="tray" id="tray">
+        <div class="floats" id="floats"></div>
+        <div class="dice" id="dice"></div>
+        <div class="memo" id="memo" aria-live="polite"></div>
+        <div class="stances" id="stances" role="group" aria-label="Roll style"></div>
+        <button class="roll" id="rollBtn"><span id="rollTxt">ROLL</span><small id="rollSub">tap (or press space)</small></button>
+      </div>
+
+      <!-- COLLECTOR VOICEMAIL -->
+      <div class="manila" id="vm">
+        <h3><span>☎ THE COLLECTOR · VOICEMAIL</span><span id="vmCount">0</span></h3>
+        <p class="sub">Each unheard excuse adds +3% to Collection Call interest (max +30%). Hear it out (you'll be on hold, but the Redline cools) or pay to make it go away.</p>
+        <div id="vmList"></div>
+      </div>
+    </section>
+
+    <aside class="meterCol">
+      <div class="meter" id="meter" data-zone="cool" aria-label="Redline meter">
+        <div class="m-read" id="mRead">0%</div>
+        <div class="m-state"><b id="mIcon">✔</b><span id="mWord">COOL</span></div>
+        <div class="m-track">
+          <div class="m-fill" id="mFill"></div>
+          <div class="m-line" style="bottom:50%"></div>
+          <div class="m-line" style="bottom:80%"></div>
+          <div class="m-mark" style="bottom:20%">✔</div>
+          <div class="m-mark" style="bottom:62%">▲</div>
+          <div class="m-mark" style="bottom:88%">✖</div>
+        </div>
+        <div class="m-title">REDLINE</div>
+      </div>
+    </aside>
+
+    <section class="shop">
+      <div class="rc-wrap">
+        <div class="receipt" id="receipt">
+          <div class="rc-head"><b>ACME DEBT SERVICES</b><small id="rcNo">RECEIPT NO. 1000 · PAYMENTS ACCEPTED, REGRETS NOT</small></div>
+          <div id="lines"></div>
+          <div class="rc-total"><span>PAID TO US THIS CHAPTER</span><span id="spentTxt">$0.00</span></div>
+          <div class="rc-foot">THANK YOU FOR YOUR DEBT.<br>NO REFUNDS ON REGRET.</div>
+        </div>
+      </div>
+      <div class="rc-wrap hidden" id="inkWrap">
+        <div class="receipt ink" id="inkWell">
+          <div class="rc-head"><b>✎ THE INK WELL</b><small>Permanent perks. Fresh Ink: <span id="inkBal">0</span></small></div>
+          <div id="inkLines"></div>
+          <div class="rc-foot">INK NEVER FADES. NEITHER DOES THE DEBT.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="mwrap hidden" id="modalWrap"><div id="modalBody" style="width:100%;display:flex"></div></div>
+
+<div class="dd hidden" id="ddWrap">
+  <div class="dd-top">
+    <canvas id="ddRing" width="168" height="168"></canvas>
+    <div class="dd-stats"><div>COMBO<b id="ddCombo">0</b></div><div>EARNED<b id="ddTotal">$0</b></div></div>
+  </div>
+  <div class="dd-field" id="ddField"><div class="dd-intro" id="ddIntro">DOUBLE DOWN!<small>Tap the coins. Fast. ★ = triple.</small></div></div>
+  <div class="ddsum hidden" id="ddSummary"></div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+/* =================================================================
+   CONFIG - tweak the game here
+   ================================================================= */
+const CONFIG={
+  START_DEBT:4200,
+  DEBT_GROWTH_PER_CHAPTER:2.5,
+  START_ROLL_VALUE:0.01,          // $ per pip
+  ROLL_MS:520,                    // dice tumble time = roll cooldown
+  SPLIT_TO_BALANCE:0.5,           // share of each payout that pays the debt
+  MATCH_MULT:3,                   // all dice match (2+ dice)
+  VALUE_STEP:1.35,                // roll value multiplier per level
+  VALUE_MILESTONE_EVERY:5,        // every Nth level doubles roll value again
+  VALUE_MILESTONE_MULT:2,
+  // shop cost curve: cost = base * growth^level
+  COST:{
+    value :{base:0.75,growth:1.6,max:80},
+    dice  :{base:2.00,growth:2.4,max:7},
+    cool  :{base:1.50,growth:1.9,max:10},
+    screen:{base:5.00,growth:2.1,max:8},
+    dd    :{base:6.00,growth:2.0,max:8},
+    auto  :{base:15.0,growth:1.9,max:8}
+  },
+  REDLINE:{
+    baseFill:1.6, baseDecay:1.0,  // % per roll / % per second
+    coolFill:0.9, coolDecay:0.3,  // per cooling level
+    afterPaid:30, afterBust:50,   // meter % after a call is resolved
+    stances:[
+      {name:'Minimum',       pay:1.0, fill:1.0, heat:1, theme:'cream'},
+      {name:'Overdraft',     pay:2.2, fill:2.4, heat:2, theme:'gold'},
+      {name:'Bounced Check', pay:4.5, fill:5.5, heat:3, theme:'red'}
+    ]
+  },
+  CALL:{
+    interestRate:0.04,            // of The Balance...
+    capRolls:40,                  // ...but never more than this many average rolls of income
+    feeRatio:0.4,                 // fee to dodge = 40% of the interest
+    excuseBump:0.03, excuseCap:10,
+    screenChancePerLvl:0.06,
+    protectInterest:0.82, protectFee:0.88
+  },
+  COLLECTOR:{holdSeconds:6, dismissRolls:20},
+  BONUS:{
+    unlockRolls:100, baseChance:0.004, chancePerLvl:0.0025,
+    seconds:8, tapMult:1.0, ticketRolls:45
+  },
+  AUTO:{rollsPerSecPerLvl:0.25, efficiency:0.5},
+  INK:{hand:0.30, skin:0.90, lawyer:0.88, pocketBase:3, pocketGrowth:3.2}
+};
+
+/* =================================================================
+   helpers
+   ================================================================= */
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const round2=x=>Math.round(x*100)/100;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// The ONE big-number formatter: $0.035 / $12.50 / $1.2K / $3.4M
+function money(n){
+  if(!isFinite(n))return '$∞';
+  const neg=n<0;n=Math.abs(n);let t;
+  if(n>=1000){const U=['K','M','B','T','Qa','Qi'];let i=-1,v=n;while(v>=1000&&i<U.length-1){v/=1000;i++;}
+    t=(v>=100?v.toFixed(0):v.toFixed(1)).replace(/\.0$/,'')+U[i];}
+  else if(n<1)t=n.toFixed(3).replace(/0$/,'');
+  else t=n.toFixed(2);
+  return(neg?'-':'')+'$'+t;
+}
+// exact dollars+cents, used only for The Balance itself so every cent drop is visible
+const exact=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* =================================================================
+   state
+   ================================================================= */
+const KEY='paidInFull_v1';
+let noSave=false;
+const newStats=()=>({busts:0,worstBust:0,interest:0,calls:0,callsPaid:0,dds:0,bestDD:0,heard:0,dismissed:0,paidIn:0,earned:0});
+const newState=()=>({
+  v:1,chapter:1,balance:CONFIG.START_DEBT,debt0:CONFIG.START_DEBT,cash:0,ink:0,
+  perks:{hand:0,pocket:0,skin:0,lawyer:0},
+  up:{value:0,dice:0,cool:0,screen:0,dd:0,auto:0},
+  redline:0,rolls:0,lifeRolls:0,stance:0,paidSeen:false,
+  excuses:[],excuseSeq:0,callsSeen:0,stats:newStats(),prev:null,vals:[1],
+  muted:false,shake:true,rebirths:0,introSeen:false,spent:0
+});
+let s=load();
+function load(){
+  const d=newState();
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){const o=JSON.parse(raw);Object.assign(d,o);
+      d.up=Object.assign(newState().up,o.up||{});
+      d.perks=Object.assign(newState().perks,o.perks||{});
+      d.stats=Object.assign(newStats(),o.stats||{});
+      if(!Array.isArray(d.excuses))d.excuses=[];
+      if(d.redline>=100)d.redline=90;}
+  }catch(e){}
+  return d;
+}
+function save(){if(noSave)return;try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}
+
+/* =================================================================
+   derived numbers
+   ================================================================= */
+const B=CONFIG.REDLINE,C=CONFIG.CALL,BN=CONFIG.BONUS,INK=CONFIG.INK;
+const STANCES=B.stances;
+const valueAt=l=>CONFIG.START_ROLL_VALUE*Math.pow(CONFIG.VALUE_STEP,l)*Math.pow(CONFIG.VALUE_MILESTONE_MULT,Math.floor(l/CONFIG.VALUE_MILESTONE_EVERY));
+const rollValue=()=>valueAt(s.up.value);
+const inkMult=()=>1+INK.hand*s.perks.hand;
+const diceCount=()=>1+s.up.dice;
+const avgPay=()=>diceCount()*3.5*rollValue()*inkMult();   // average Minimum-stance roll
+const upCost=id=>{const c=CONFIG.COST[id];const x=c.base*Math.pow(c.growth,s.up[id]);return x<1?Math.max(0.01,round2(x)):round2(x);};
+const ticketCost=()=>Math.max(1,round2(BN.ticketRolls*avgPay()));
+const fillPerRoll=st=>B.baseFill*st.fill*Math.pow(B.coolFill,s.up.cool)*Math.pow(INK.skin,s.perks.skin);
+const decayPerSec=()=>B.baseDecay+B.coolDecay*s.up.cool;
+const ddUnlocked=()=>s.chapter>1||s.rolls>=BN.unlockRolls;
+const ddChance=()=>ddUnlocked()?BN.baseChance+BN.chancePerLvl*s.up.dd:0;
+const dismissCost=()=>Math.max(0.2,round2(avgPay()*CONFIG.COLLECTOR.dismissRolls));
+const startCashFor=l=>l<=0?0:round2(INK.pocketBase*Math.pow(INK.pocketGrowth,l-1));
+const debtFor=ch=>Math.round(CONFIG.START_DEBT*Math.pow(CONFIG.DEBT_GROWTH_PER_CHAPTER,ch-1));
+const CREDITORS=['First Penny Savings & Loan','Second Chance Credit Union (Chance Not Included)','Third Time\'s a Charm Lending','Fourth Notice Financial','Fifth Wheel Trust Co.'];
+const creditorFor=ch=>CREDITORS[ch-1]||('Bureau of Eventual Repayment, Branch #'+ch);
+const inkGain=()=>3+2*(s.chapter-1)+Math.floor(s.rolls/250)+(s.stats.busts===0?3:0);
+
+/* =================================================================
+   audio (all synthesized, short clips)
+   ================================================================= */
+let AC=null,master=null,noiseBuf=null;
+function ensureAudio(){
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+    noiseBuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}catch(e){AC=null;}}
+  if(AC&&AC.state==='suspended')AC.resume();
+}
+function tone({f=440,f2=0,t=.1,type='sine',v=.15,at=0,lp=0}={}){
+  if(s.muted||!AC)return;const t0=AC.currentTime+at;const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+t);
+  g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+.01);g.gain.exponentialRampToValueAtTime(.0001,t0+t);
+  o.connect(g);let out=g;
+  if(lp){const fl=AC.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;g.connect(fl);out=fl;}
+  out.connect(master);o.start(t0);o.stop(t0+t+.03);
+}
+function noise({t=.05,v=.2,f=2000,q=1,type='bandpass',at=0}={}){
+  if(s.muted||!AC)return;const t0=AC.currentTime+at;const src=AC.createBufferSource();src.buffer=noiseBuf;
+  const fl=AC.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;
+  const g=AC.createGain();g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+t);
+  src.connect(fl);fl.connect(g);g.connect(master);src.start(t0,Math.random()*.5);src.stop(t0+t+.02);
+}
+const sfx={
+  clatter(){for(let i=0;i<9;i++){noise({at:i*.045+Math.random()*.02,t:.035,v:.28,f:1400+Math.random()*3200,q:3});}
+    tone({f:180,f2:90,t:.08,type:'triangle',v:.12,at:.02});tone({f:200,f2:100,t:.08,type:'triangle',v:.1,at:.3});},
+  kaching(){noise({t:.03,v:.15,f:5000,q:1});tone({f:1318,t:.12,type:'triangle',v:.1});tone({f:1975,t:.4,type:'triangle',v:.12,at:.09});tone({f:2637,t:.3,type:'sine',v:.04,at:.09});},
+  thump(){tone({f:130,f2:34,t:.45,type:'sine',v:.55});noise({t:.28,v:.45,f:260,type:'lowpass'});},
+  tick(p){tone({f:650+p*9,t:.035,type:'square',v:.035});},
+  ring(){for(let i=0;i<2;i++){tone({f:440,t:.38,type:'sine',v:.09,at:i*.55});tone({f:480,t:.38,type:'sine',v:.09,at:i*.55});}},
+  blip(f=520){tone({f,t:.09,type:'triangle',v:.14});},
+  deny(){tone({f:180,f2:120,t:.14,type:'square',v:.07});},
+  print(){for(let i=0;i<6;i++)noise({at:i*.04,t:.03,v:.16,f:3500+i*300,q:2});tone({f:1568,t:.12,type:'triangle',v:.07,at:.25});},
+  stamp(){tone({f:100,f2:40,t:.3,v:.5});noise({t:.12,v:.35,f:900,q:.8});},
+  fanfare(){[523,659,784,1047].forEach((f,i)=>tone({f,t:.28,type:'triangle',v:.13,at:i*.11}));},
+  beep(){tone({f:880,t:.12,type:'square',v:.05});tone({f:880,t:.12,type:'square',v:.05,at:.18});},
+  ddStart(){[392,523,659,784,1047].forEach((f,i)=>tone({f,t:.14,type:'square',v:.06,at:i*.06}));},
+  voice(text,dur=2){const n=Math.max(4,Math.min(40,Math.round(text.length/3.2)));const step=dur/n;const base=rnd(85,120);
+    for(let i=0;i<n;i++){if(Math.random()<.14)continue;const f=base*rnd(.8,1.7);tone({f,f2:f*rnd(.7,1.2),t:Math.max(.05,step*.75),type:'sawtooth',v:.07,at:i*step,lp:700+Math.random()*500});}}
+};
+
+/* =================================================================
+   pixel font for The Balance (canvas)
+   ================================================================= */
+const G={
+'0':['01110','10001','10011','10101','11001','10001','01110'],
+'1':['00100','01100','00100','00100','00100','00100','01110'],
+'2':['01110','10001','00001','00010','00100','01000','11111'],
+'3':['11110','00001','00001','01110','00001','00001','11110'],
+'4':['00010','00110','01010','10010','11111','00010','00010'],
+'5':['11111','10000','11110','00001','00001','10001','01110'],
+'6':['00110','01000','10000','11110','10001','10001','01110'],
+'7':['11111','00001','00010','00100','01000','01000','01000'],
+'8':['01110','10001','10001','01110','10001','10001','01110'],
+'9':['01110','10001','10001','01111','00001','00010','01100'],
+'$':['00100','01111','10100','01110','00101','11110','00100'],
+',':['000','000','000','000','110','010','100'],
+'.':['000','000','000','000','000','110','110'],
+'-':['00000','00000','00000','11111','00000','00000','00000']
+};
+function drawPixelText(cv,text,color,shadow,maxW){
+  let cols=0;for(const ch of text)cols+=(G[ch]||G['0'])[0].length+1;cols+=0;
+  const p=clamp(Math.floor(maxW/cols),2,9);
+  cv.width=cols*p;cv.height=8*p;cv.style.width=cv.width+'px';cv.style.height=cv.height+'px';
+  const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);
+  for(let pass=0;pass<2;pass++){
+    x.fillStyle=pass?color:shadow;const off=pass?0:1;let cx=0;
+    for(const ch of text){const g=G[ch]||G['0'];
+      for(let r=0;r<7;r++)for(let c=0;c<g[r].length;c++)if(g[r][c]==='1')x.fillRect((cx+c+off)*p,(r+off)*p,p,p);
+      cx+=g[0].length+1;}
+  }
+}
+
+/* =================================================================
+   pixel dice (canvas)
+   ================================================================= */
+const THEMES={
+  cream:{face:'#f2e8cf',shade:'#c9b98c',hi:'#fffaf0',pip:'#1b1613',out:'#0d0b0a'},
+  gold :{face:'#ffd23f',shade:'#d19a00',hi:'#ffee9a',pip:'#3a2a00',out:'#0d0b0a'},
+  red  :{face:'#e63946',shade:'#a4161a',hi:'#ff8a92',pip:'#ffffff',out:'#0d0b0a'}
+};
+const PIPS={1:[[8,8]],2:[[4,4],[12,12]],3:[[4,4],[8,8],[12,12]],4:[[4,4],[12,4],[4,12],[12,12]],5:[[4,4],[12,4],[8,8],[4,12],[12,12]],6:[[4,4],[12,4],[4,8],[12,8],[4,12],[12,12]]};
+function drawDie(cv,v,th){
+  const x=cv.getContext('2d');x.clearRect(0,0,17,17);
+  const R=(a,b,w,h,c)=>{x.fillStyle=c;x.fillRect(a,b,w,h);};
+  R(2,0,13,1,th.out);R(2,16,13,1,th.out);R(0,2,1,13,th.out);R(16,2,1,13,th.out);
+  R(1,1,1,1,th.out);R(15,1,1,1,th.out);R(1,15,1,1,th.out);R(15,15,1,1,th.out);
+  R(1,2,15,13,th.face);R(2,1,13,15,th.face);
+  R(2,14,13,2,th.shade);R(14,2,2,13,th.shade);R(14,14,1,1,th.shade);
+  R(3,2,9,1,th.hi);R(2,3,1,5,th.hi);
+  (PIPS[v]||[]).forEach(([cx,cy])=>R(cx-1,cy-1,3,3,th.pip));
+}
+const theme=()=>THEMES[STANCES[s.stance].theme];
+
+/* =================================================================
+   DOM refs
+   ================================================================= */
+const shaker=$('shaker'),balCv=$('balCv'),balWrap=$('balWrap'),diceEl=$('dice'),floatsEl=$('floats'),memo=$('memo'),
+  rollBtn=$('rollBtn'),stancesEl=$('stances'),meterEl=$('meter'),toastsEl=$('toasts'),modalWrap=$('modalWrap'),modalBody=$('modalBody'),
+  ddWrap=$('ddWrap'),ddField=$('ddField'),ddRing=$('ddRing'),ddSummary=$('ddSummary'),ddIntro=$('ddIntro');
+const cache={};
+function setText(id,t){if(cache[id]!==t){cache[id]=t;$(id).textContent=t;}}
+
+/* =================================================================
+   flow flags
+   ================================================================= */
+let rolling=false,modalOpen=false,hold=null;
+const dd={active:false,phase:'',t:0,intro:0,total:0,hits:0,miss:0,combo:0,best:0,targets:[],spawnAcc:0,spawned:0,src:''};
+const locked=()=>rolling||modalOpen||dd.active||!!hold;
+
+/* =================================================================
+   toasts, floats, modal
+   ================================================================= */
+function toast(html,cls=''){
+  const d=document.createElement('div');d.className='toast '+cls;d.innerHTML=html;toastsEl.appendChild(d);
+  while(toastsEl.children.length>3)toastsEl.firstChild.remove();
+  setTimeout(()=>d.remove(),3600);
+}
+function floatText(text,cls,host=floatsEl,x=rnd(22,78),y=rnd(28,62)){
+  const d=document.createElement('div');d.className='fl '+cls;d.textContent=text;d.style.left=x+'%';d.style.top=y+'%';
+  host.appendChild(d);setTimeout(()=>d.remove(),1100);
+}
+function openModal(html){modalBody.innerHTML=`<div class="sheet">${html}</div>`;modalWrap.classList.remove('hidden');modalWrap.scrollTop=0;modalOpen=true;}
+function closeModal(){modalWrap.classList.add('hidden');modalBody.innerHTML='';modalOpen=false;}
+function shake(){if(!s.shake)return;shaker.classList.remove('shake');void shaker.offsetWidth;shaker.classList.add('shake');}
+
+/* =================================================================
+   dice tray
+   ================================================================= */
+let dieEls=[];
+function buildTray(){
+  const n=diceCount();diceEl.innerHTML='';dieEls=[];
+  diceEl.style.setProperty('--ds',(n<=2?88:n<=4?72:n<=6?60:52)+'px');
+  while(s.vals.length<n)s.vals.push(1+Math.floor(Math.random()*6));
+  s.vals.length=n;
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='die';const cv=document.createElement('canvas');cv.width=17;cv.height=17;
+    el.appendChild(cv);diceEl.appendChild(el);dieEls.push({el,cv});drawDie(cv,s.vals[i],theme());
+  }
+}
+const redrawDice=()=>dieEls.forEach((d,i)=>drawDie(d.cv,s.vals[i],theme()));
+function buildStances(){
+  stancesEl.innerHTML='';
+  STANCES.forEach((st,i)=>{
+    const b=document.createElement('button');b.className='st';
+    b.innerHTML=`<b></b><span>×${st.pay} pay</span><span class="heat">${'▮'.repeat(st.heat)}${'▯'.repeat(3-st.heat)} heat</span>`;
+    b.onclick=()=>{if(rolling)return;ensureAudio();s.stance=i;sfx.blip(300+i*140);refreshStances();redrawDice();save();};
+    stancesEl.appendChild(b);
+  });refreshStances();
+}
+function refreshStances(){[...stancesEl.children].forEach((b,i)=>{const on=i===s.stance;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.querySelector('b').textContent=(on?'✔ ':'')+STANCES[i].name;});}
+
+/* =================================================================
+   payouts
+   ================================================================= */
+function applyPayout(amount){
+  let toBal=0;
+  if(s.balance>0)toBal=Math.min(s.balance,amount*CONFIG.SPLIT_TO_BALANCE);
+  const toCash=amount-toBal;
+  s.balance-=toBal;if(s.balance<0.005)s.balance=0;
+  s.cash+=toCash;s.stats.paidIn+=toBal;s.stats.earned+=amount;
+  return{toBal,toCash};
+}
+const QUIPS=['Clack. The dice mumble something about "overdue".','Money! Slightly less than you hoped.','Another roll, another tiny dent.','The dice have unionized and want a raise.','Your wallet whimpers happily.','Cha-ching, in a very small font.','Technically that is progress.','The Balance flinches. Barely.','Somewhere a creditor adjusts their tie.','A modest payment, delivered with confidence.'];
+function resolveRoll(vals){
+  const st=STANCES[s.stance];const n=vals.length;const sum=vals.reduce((a,b)=>a+b,0);
+  const match=n>=2&&vals.every(v=>v===vals[0]);const snake=match&&vals[0]===1;
+  const payout=sum*rollValue()*inkMult()*st.pay*(match?CONFIG.MATCH_MULT:1);
+  const before=s.balance;
+  const {toBal,toCash}=applyPayout(payout);
+  s.rolls++;s.lifeRolls++;
+  sfx.kaching();
+  if(toBal>0){floatText('✔ −'+money(toBal),'paid',floatsEl,rnd(25,45),rnd(30,50));balCv.classList.remove('dip');void balCv.offsetWidth;balCv.classList.add('dip');}
+  floatText('● +'+money(toCash),'cash',floatsEl,rnd(55,78),rnd(40,62));
+  let msg;
+  if(snake)msg='Snake eyes. The bank sends a sympathy card, with a late fee. (Matching ×'+CONFIG.MATCH_MULT+'.)';
+  else if(match)msg=`Matching dice! They're in cahoots. ×${CONFIG.MATCH_MULT} payout.`;
+  else if(s.lifeRolls===1)msg='First payment! It counts. Technically.';
+  else if(n*6===sum)msg='All sixes. Somewhere, a creditor sneezes.';
+  else msg=pick(QUIPS);
+  memo.textContent=`Rolled ${sum} → ${money(payout)}. ${msg}`;
+  rolling=false;
+  if(s.balance>0){
+    s.redline+=fillPerRoll(st);sfx.tick(s.redline);
+    if(s.redline>=100){s.redline=100;updateUI();triggerCall();save();return;}
+    if(Math.random()<ddChance()){startDD('random');save();updateUI();return;}
+  }
+  save();updateUI();
+}
+function doRoll(){
+  if(locked())return;ensureAudio();rolling=true;
+  const n=diceCount();const vals=[];for(let i=0;i<n;i++)vals.push(1+Math.floor(Math.random()*6));
+  sfx.clatter();const els=dieEls;
+  els.forEach((d,i)=>{d.el.classList.remove('land');d.el.style.animationDelay=Math.min(i*20,100)+'ms';d.el.classList.add('tumble');});
+  const iv=setInterval(()=>els.forEach(d=>drawDie(d.cv,1+Math.floor(Math.random()*6),theme())),70);
+  setTimeout(()=>{
+    clearInterval(iv);s.vals=vals;
+    els.forEach((d,i)=>{d.el.classList.remove('tumble');void d.el.offsetWidth;d.el.classList.add('land');drawDie(d.cv,vals[i],theme());});
+    resolveRoll(vals);
+  },CONFIG.ROLL_MS);
+  updateUI();
+}
+
+/* =================================================================
+   Collection Calls, busts, The Collector
+   ================================================================= */
+const CALLS=[
+ {who:'Mr. Pennington, Accounts Receivable',say:'Just circling back on that thing from 2019. And 2020. And, frankly, yesterday.',m:1.0},
+ {who:'Automated Voice',say:'This call is not a threat. This call is a gentle reminder with teeth.',m:.9},
+ {who:'Gary, Regional Escalations',say:'I was told to be friendly. I have been friendly. Now I am less friendly.',m:1.2},
+ {who:"Your Bank's Robot Dog",say:'Woof. (Translation: you owe me woof dollars.)',m:.8},
+ {who:'The Interest Fairy',say:'Every time you roll, a tiny percentage grows its wings.',m:1.3},
+ {who:'Brenda from Compliance',say:"I'm not mad. I just have a laminated chart about you.",m:1.1},
+ {who:'A Very Polite Lawyer',say:'Hello! This is a courtesy call. The courtesy is expiring.',m:1.4},
+ {who:'Hold Music Division',say:'♪ Your debt is important to us. Please continue to have it. ♪',m:.85},
+ {who:'Unknown Number',say:"We've been trying to reach you about your account's extended warranty. It is also debt.",m:1.0},
+ {who:'The Collector (Personally)',say:'Do not hang up. I can hear you not hanging up.',m:1.5}
+];
+const EXCUSES=['“The check is in the mail.” (It was a postcard. Of a check.)','“My dog ate the invoice.” (You do not have a dog.)','“I was going to pay, but the numbers looked sad.”','“I\'m between jobs.” (The jobs are between you.)','“My accountant is on a very long lunch.” (Since March.)','“Mercury was in retrograde. So was my wallet.”','“I thought net-30 meant thirty years.”','“I sent it by carrier pigeon. The pigeon unionized.”','“I paid in exposure. It went viral. No money, though.”','“Technically I owe this debt to my past self.”','“My lucky dice told me to wait.”','“I\'m saving up to pay it all at once. Very, very slowly.”','“The ATM looked at me funny.”','“I was robbed by inflation. And a seagull.”','“I wrote PAID on it. In pen.”','“It\'s not a debt, it\'s a long-term subscription to you.”'];
+const PAID_LINES=['Fee received. I will pretend this is a friendship.','Noted. Your generosity is filed under "Temporary".','Pleasure doing business. The pleasure is mostly mine.'];
+const BUST_LINES=['Interest! It grows on trees. The trees are you.','Hear that? That is your balance, growing.','I do not make the rules. I just read them aloud. Loudly.'];
+let pendingCall=null;
+function callQuote(ev){
+  const byBal=s.balance*C.interestRate,byInc=avgPay()*C.capRolls;
+  const base=Math.min(byBal,byInc);
+  const nEx=Math.min(s.excuses.length,C.excuseCap);
+  const exM=1+C.excuseBump*nEx;
+  const prot=Math.pow(C.protectInterest,s.up.screen)*Math.pow(INK.lawyer,s.perks.lawyer);
+  const interest=Math.max(0.01,round2(base*ev.m*exM*prot));
+  const fee=Math.max(0.01,round2(interest*C.feeRatio*Math.pow(C.protectFee,s.up.screen)));
+  const rows=[
+    [`${(C.interestRate*100).toFixed(0)}% of The Balance`,money(byBal)],
+    [`Cap: ${C.capRolls} average rolls of your income`,money(byInc)],
+    ['Base (the smaller one)',money(base)],
+    [`Caller mood ×${ev.m.toFixed(2)}`,money(base*ev.m)]
+  ];
+  if(nEx)rows.push([`Unheard excuses (${nEx}) ×${exM.toFixed(2)}`,money(base*ev.m*exM)]);
+  if(prot<1)rows.push([`Your protection ×${prot.toFixed(2)}`,money(interest)]);
+  return{interest,fee,rows};
+}
+function triggerCall(){
+  s.stats.calls++;s.callsSeen++;
+  if(Math.random()<C.screenChancePerLvl*s.up.screen){
+    s.redline=B.afterPaid;toast('<b>CALL SCREENED ✔</b> Caller ID said "Definitely Not Debt". You let it ring out.');sfx.beep();updateUI();return;
+  }
+  const ev=pick(CALLS);const q=callQuote(ev);pendingCall={ev,q};
+  sfx.ring();
+  const canPay=s.cash>=q.fee;
+  openModal(`
+    <div class="callhead ring"><span>☎</span><span>INCOMING COLLECTION CALL</span></div>
+    <p style="margin:0 0 2px"><b>${ev.who}</b></p>
+    <div class="quote">“${ev.say}”</div>
+    <p style="margin-bottom:4px"><b>The Redline is full.</b> Here is exactly what ignoring this call costs:</p>
+    <table class="bd">${q.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+      <tr class="tot"><td>▲ ADDED TO THE BALANCE IF IGNORED</td><td style="color:var(--pred)">+${money(q.interest)}</td></tr></table>
+    <div class="btns">
+      <button class="bigbtn y ${canPay?'':'dis'}" data-act="callPay">✔ PAY THE FEE: ${money(q.fee)}${canPay?'':` (need ${money(q.fee-s.cash)} more)`}</button>
+      <button class="bigbtn r" data-act="callRing">✖ LET IT RING (BUST: +${money(q.interest)} DEBT)</button>
+    </div>
+    <p style="margin:10px 0 0;font-size:.74rem;opacity:.75">You have ${money(s.cash)} cash. Paying the fee drops the Redline to ${B.afterPaid}%.</p>`);
+  setTimeout(()=>{sfx.voice(ev.say,2.2);},900);
+}
+function addExcuse(){
+  if(s.excuses.length>=12)return;
+  let text;
+  if(s.prev&&Math.random()<.3){
+    text=pick([`“Chapter ${s.prev.chapter} was a misunderstanding.” (${s.prev.busts} bust${s.prev.busts===1?'':'s'} say otherwise.)`,`“This time will be different.” (It's on file. From Chapter ${s.prev.chapter}. Word for word.)`,`“I only bounced ${s.prev.busts} check${s.prev.busts===1?'':'s'}.” (Per chapter.)`]);
+  }else text=pick(EXCUSES);
+  s.excuseSeq++;s.excuses.push({id:s.excuseSeq,text});renderVM();
+}
+function collectorSays(lines,withVm){
+  const t=pick(lines);
+  toast(`<b>☎ THE COLLECTOR:</b> “${t}”${withVm?' <i>(New voicemail.)</i>':''}`,'col');
+  setTimeout(()=>sfx.voice(t,1.8),150);
+}
+function resolveCall(pay){
+  const {ev,q}=pendingCall;pendingCall=null;
+  if(pay&&s.cash>=q.fee){
+    s.cash-=q.fee;s.stats.callsPaid++;s.redline=B.afterPaid;closeModal();sfx.print();
+    addExcuse();collectorSays(PAID_LINES,true);save();updateUI();return;
+  }
+  // BUST
+  const before=s.balance;s.balance+=q.interest;
+  s.stats.busts++;s.stats.interest+=q.interest;s.stats.worstBust=Math.max(s.stats.worstBust,q.interest);
+  s.redline=B.afterBust;shake();sfx.thump();
+  openModal(`
+    <div class="callhead"><span>✖</span><span>BUST! THE REDLINE WINS</span></div>
+    <div class="bustlab">You let <b>${ev.who}</b> ring through. Here's what it cost you:</div>
+    <div class="bustnum">▲ +${money(q.interest)}</div>
+    <div class="bustlab">added to The Balance</div>
+    <table class="bd" style="margin-top:10px">
+      <tr><td>The Balance before</td><td>${exact(before)}</td></tr>
+      ${q.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+      <tr class="tot"><td>The Balance now</td><td style="color:var(--pred)">${exact(s.balance)}</td></tr></table>
+    <p style="font-size:.78rem;opacity:.8;margin:6px 0 0">Tip: the fee would have been ${money(q.fee)}. Cooling-Off Periods slow the meter; Call Screening shrinks interest.</p>
+    <div class="btns"><button class="bigbtn" data-act="bustOk">UGH. CONTINUE.</button></div>`);
+  addExcuse();
+  setTimeout(()=>{if(modalOpen)collectorSays(BUST_LINES,true);},700);
+  save();updateUI();
+}
+
+/* voicemail */
+function renderVM(){
+  const list=$('vmList');$('vmCount').textContent=s.excuses.length+(s.excuses.length?' ON FILE':'');
+  if(!s.excuses.length){list.innerHTML='<div class="empty">No messages. The Collector is eerily quiet. (He will call. He always calls.)</div>';return;}
+  list.innerHTML=s.excuses.map(e=>{
+    const h=hold&&hold.id===e.id;
+    return `<div class="slip" data-id="${e.id}"><div class="who">EXCUSE #${e.id} · ON FILE</div><q>${h?'<span class="vm-type"></span>':e.text}</q>
+    ${h?'<div class="hold"><i class="vm-prog"></i></div><div class="who" style="margin-top:4px">ON HOLD… the Redline is cooling ▼</div>'
+    :`<div class="acts"><button data-vm="hear" class="${hold?'no':''}">▶ HEAR IT OUT (${CONFIG.COLLECTOR.holdSeconds}s)</button><button data-vm="pay" class="p vm-pay">PAY ${money(dismissCost())}</button></div>`}</div>`;
+  }).join('');
+}
+function startHold(id){
+  if(hold||dd.active||modalOpen||rolling)return;const ex=s.excuses.find(e=>e.id===id);if(!ex)return;
+  ensureAudio();hold={id,t:0,dur:CONFIG.COLLECTOR.holdSeconds,text:ex.text};sfx.beep();sfx.voice(ex.text,hold.dur);renderVM();
+}
+function finishHold(){
+  const id=hold.id;s.excuses=s.excuses.filter(e=>e.id!==id);s.stats.heard++;hold=null;renderVM();
+  toast('<b>☎ EXCUSE HEARD.</b> Nothing changed, except you. The Collector hangs up, politely.','col');save();
+}
+function payDismiss(id){
+  const c=dismissCost();if(hold)return;
+  if(s.cash<c){toast(`Need ${money(c-s.cash)} more to dismiss that.`);sfx.deny();return;}
+  ensureAudio();s.cash-=c;s.stats.dismissed++;s.excuses=s.excuses.filter(e=>e.id!==id);sfx.print();renderVM();save();updateUI();
+}
+
+/* =================================================================
+   shop
+   ================================================================= */
+const UPG=[
+ {id:'value',name:'Better Rates',desc:'Every pip pays more. Every 5th level doubles it again.',eff:l=>`${money(valueAt(l))} per pip`,unlock:()=>true},
+ {id:'dice',name:'Extra Die',desc:'Hire another die. It works for exposure.',eff:l=>`${1+l} dice`,unlock:()=>s.chapter>1||s.rolls>=10,hint:()=>`Unlocks after ${Math.max(0,10-s.rolls)} more rolls`},
+ {id:'cool',name:'Cooling-Off Period',desc:'Redline fills slower and cools faster.',eff:l=>`fill ×${Math.pow(B.coolFill,l).toFixed(2)} · cools ${(B.baseDecay+B.coolDecay*l).toFixed(1)}%/s`,unlock:()=>s.chapter>1||s.rolls>=25,hint:()=>`Unlocks after ${Math.max(0,25-s.rolls)} more rolls`},
+ {id:'screen',name:'Call Screening',desc:'Smaller interest, cheaper fees, and some calls never reach you.',eff:l=>`interest ×${Math.pow(C.protectInterest,l).toFixed(2)} · ${Math.round(C.screenChancePerLvl*l*100)}% screened`,unlock:()=>s.chapter>1||s.callsSeen>=1||s.rolls>=80,hint:()=>'Unlocks after your first Collection Call'},
+ {id:'dd',name:'Double Down Hotline',desc:'Bonus rounds ring in more often.',eff:l=>`${((BN.baseChance+BN.chancePerLvl*l)*100).toFixed(2)}% per roll`,unlock:()=>ddUnlocked(),hint:()=>`Unlocks after ${Math.max(0,BN.unlockRolls-s.rolls)} more rolls`},
+ {id:'auto',name:'Autopay Standing Order',desc:'Pays while you sit there. Passive income, minus the dignity.',eff:l=>`${(CONFIG.AUTO.rollsPerSecPerLvl*l).toFixed(2)} auto-rolls/sec`,unlock:()=>s.chapter>1||s.rolls>=200,hint:()=>`Unlocks after ${Math.max(0,200-s.rolls)} more rolls`},
+ {id:'ticket',name:'Double Down Ticket',desc:'Buy a bonus round right now. Repeatable.',eff:()=>'one instant bonus round',unlock:()=>ddUnlocked(),hint:()=>`Unlocks after ${Math.max(0,BN.unlockRolls-s.rolls)} more rolls`,repeat:true}
+];
+const PERKS=[
+ {id:'hand',name:'Neat Handwriting',desc:'Every payout, forever, gets a little neater.',base:2,growth:1.7,max:15,eff:l=>`+${Math.round(INK.hand*l*100)}% payouts`},
+ {id:'pocket',name:'Pocket Lint',desc:'Start every chapter with some cash.',base:2,growth:1.7,max:10,eff:l=>money(startCashFor(l))+' start cash'},
+ {id:'skin',name:'Thick Skin',desc:'The Redline fills 10% slower. Forever.',base:3,growth:1.7,max:8,eff:l=>`fill ×${Math.pow(INK.skin,l).toFixed(2)}`},
+ {id:'lawyer',name:'Fine Print',desc:'You read it this time. Interest −12% per level.',base:3,growth:1.7,max:8,eff:l=>`interest ×${Math.pow(INK.lawyer,l).toFixed(2)}`}
+];
+const perkCost=(p,l)=>Math.ceil(p.base*Math.pow(p.growth,l));
+function buildRows(list,host,onBuy){
+  host.innerHTML='';
+  list.forEach(u=>{
+    const el=document.createElement('div');el.className='line';
+    el.innerHTML=`<div class="l-top"><span class="l-name">${u.name}</span><span class="l-dots"></span><span class="l-price"></span></div><div class="l-desc"></div><div class="l-eff"></div><div class="l-bot"><span class="l-lvl"></span><button class="pay"></button></div>`;
+    host.appendChild(el);
+    u.row={el,price:el.querySelector('.l-price'),desc:el.querySelector('.l-desc'),eff:el.querySelector('.l-eff'),lvl:el.querySelector('.l-lvl'),btn:el.querySelector('button')};
+    u.row.btn.onclick=()=>onBuy(u);
+  });
+}
+function setPay(btn,state,text){const c='pay '+state;if(btn.className!==c)btn.className=c;if(btn.textContent!==text)btn.textContent=text;}
+function setT(el,t){if(el.textContent!==t)el.textContent=t;}
+function updateShop(){
+  UPG.forEach(u=>{
+    const r=u.row,unl=u.unlock();r.el.classList.toggle('locked',!unl);
+    if(!unl){setT(r.desc,u.hint());setT(r.price,'???');setT(r.eff,'');setT(r.lvl,'');setPay(r.btn,'lock','LOCKED');return;}
+    setT(r.desc,u.desc);
+    if(u.repeat){const c=ticketCost();setT(r.price,money(c));setT(r.eff,u.eff());setT(r.lvl,'REPEATABLE');setPay(r.btn,s.cash>=c?'ok':'no',s.cash>=c?'✔ PAY':'NEED '+money(c-s.cash));return;}
+    const l=s.up[u.id],max=CONFIG.COST[u.id].max;
+    setT(r.lvl,`LV ${l}${max<Infinity?' / '+max:''}`);
+    if(l>=max){setT(r.price,'PAID');setT(r.eff,u.eff(l));setPay(r.btn,'max','✔ MAXED');return;}
+    const c=upCost(u.id);setT(r.price,money(c));setT(r.eff,u.eff(l)+'  →  '+u.eff(l+1));
+    setPay(r.btn,s.cash>=c?'ok':'no',s.cash>=c?'✔ PAY':'NEED '+money(c-s.cash));
+  });
+  const showInk=s.chapter>1||s.ink>0||s.rebirths>0;$('inkWrap').classList.toggle('hidden',!showInk);
+  if(showInk){setT($('inkBal'),String(s.ink));
+    PERKS.forEach(p=>{const r=p.row,l=s.perks[p.id];setT(r.desc,p.desc);setT(r.lvl,`LV ${l} / ${p.max}`);
+      if(l>=p.max){setT(r.price,'MAX');setT(r.eff,p.eff(l));setPay(r.btn,'max','✔ MAXED');return;}
+      const c=perkCost(p,l);setT(r.price,'✎ '+c);setT(r.eff,p.eff(l)+'  →  '+p.eff(l+1));
+      setPay(r.btn,s.ink>=c?'ok':'no',s.ink>=c?'✔ SPEND':'NEED ✎ '+(c-s.ink));});}
+  setT($('spentTxt'),money(s.spent));
+  setT($('rcNo'),'RECEIPT NO. '+(1000+s.lifeRolls)+' · PAYMENTS ACCEPTED, REGRETS NOT');
+}
+function buyUpgrade(u){
+  ensureAudio();if(modalOpen||dd.active)return;
+  if(!u.unlock())return;
+  if((u.repeat||u.id==='dice')&&(rolling||hold)){toast('Let the dice land (or the Collector finish) first.');return;}
+  if(u.repeat){const c=ticketCost();if(s.cash<c){toast(`Need ${money(c-s.cash)} more for a ticket.`);sfx.deny();return;}
+    s.cash-=c;s.spent+=c;sfx.print();startDD('purchase');save();updateUI();return;}
+  const l=s.up[u.id],max=CONFIG.COST[u.id].max;if(l>=max)return;
+  const c=upCost(u.id);if(s.cash<c){toast(`Need ${money(c-s.cash)} more for ${u.name}.`);sfx.deny();return;}
+  s.cash-=c;s.spent+=c;s.up[u.id]++;sfx.print();
+  if(u.id==='dice')buildTray();
+  toast(`<b>PAID ✔</b> ${u.name} → ${u.eff(s.up[u.id])}`);
+  save();updateUI();
+}
+function buyPerk(p){
+  const l=s.perks[p.id];if(l>=p.max)return;const c=perkCost(p,l);
+  if(s.ink<c){toast(`Need ✎ ${c-s.ink} more Fresh Ink.`);sfx.deny();return;}
+  ensureAudio();s.ink-=c;s.perks[p.id]++;sfx.stamp();toast(`<b>✎ INKED.</b> ${p.name} → ${p.eff(s.perks[p.id])}`);save();updateUI();
+}
+
+/* =================================================================
+   Double Down bonus round
+   ================================================================= */
+function drawRing(frac,label){
+  const x=ddRing.getContext('2d'),W=ddRing.width;x.clearRect(0,0,W,W);x.lineWidth=16;
+  x.setLineDash([]);x.strokeStyle='#2c2530';x.beginPath();x.arc(W/2,W/2,W/2-14,0,Math.PI*2);x.stroke();
+  if(frac>0){x.strokeStyle=frac>.3?'#ffc933':'#ff5757';x.setLineDash(frac>.3?[]:[10,7]);x.beginPath();x.arc(W/2,W/2,W/2-14,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);x.stroke();}
+  x.setLineDash([]);x.fillStyle='#fff';x.font='900 58px "Courier New",monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(label,W/2,W/2+4);
+}
+function startDD(src){
+  Object.assign(dd,{active:true,phase:'intro',t:0,intro:0,total:0,hits:0,miss:0,combo:0,best:0,targets:[],spawnAcc:0,spawned:0,src});
+  ensureAudio();ddField.querySelectorAll('.tgt,.fl').forEach(e=>e.remove());
+  ddIntro.classList.remove('hidden');ddSummary.classList.add('hidden');ddSummary.innerHTML='';
+  ddWrap.classList.remove('hidden');
+  setText('ddCombo','0');setText('ddTotal','$0');drawRing(1,String(BN.seconds));sfx.ddStart();
+  if(s.chapter===1&&s.stats.dds===0)memo.textContent='';
+}
+function spawnTarget(){
+  const r=ddField.getBoundingClientRect();const big=(++dd.spawned%7===0);const sz=big?118:Math.round(rnd(84,104));
+  const mw=Math.max(10,r.width-sz-8),mh=Math.max(10,r.height-sz-8);let x,y,tries=0;
+  do{x=4+Math.random()*mw;y=4+Math.random()*mh;tries++;}while(tries<8&&dd.targets.some(t=>!t.done&&Math.hypot(t.x-x,t.y-y)<sz+8));
+  const life=Math.max(1.0,1.6-dd.t*.07)*(big?1.2:1);
+  const el=document.createElement('div');el.className='tgt'+(big?' big':'');
+  el.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px`;
+  el.innerHTML=`<span class="ring" style="animation-duration:${life}s"></span><span class="coin">${big?'★':'$'}</span>`;
+  ddField.appendChild(el);const t={el,x,y,sz,born:dd.t,life,big,done:false};el._t=t;dd.targets.push(t);
+}
+function hitTarget(t){
+  t.done=true;dd.hits++;dd.combo++;dd.best=Math.max(dd.best,dd.combo);
+  const pay=avgPay()*BN.tapMult*(1+Math.min(dd.combo,20)*.1)*(t.big?3:1);dd.total+=pay;
+  t.el.classList.add('pop');setTimeout(()=>t.el.remove(),220);
+  floatText('+'+money(pay),t.big?'paid':'cash',ddField,((t.x+t.sz/2)/ddField.clientWidth)*100,((t.y)/ddField.clientHeight)*100);
+  sfx.blip(520*Math.pow(2,Math.min(dd.combo,14)/12));
+  setText('ddCombo',String(dd.combo));setText('ddTotal',money(dd.total));
+}
+function ddUpdate(dt){
+  if(dd.phase==='intro'){dd.intro+=dt;if(dd.intro>=.9){dd.phase='play';ddIntro.classList.add('hidden');}return;}
+  if(dd.phase!=='play')return;
+  dd.t+=dt;const left=BN.seconds-dd.t;
+  dd.spawnAcc+=dt;const gap=Math.max(.27,.55-dd.t*.035);
+  const onScreen=dd.targets.filter(t=>!t.done).length;
+  if(dd.spawnAcc>=gap&&onScreen<4&&left>.5){dd.spawnAcc=0;spawnTarget();}
+  dd.targets.forEach(t=>{if(!t.done&&dd.t-t.born>t.life){t.done=true;dd.miss++;dd.combo=0;setText('ddCombo','0');t.el.classList.add('miss');setTimeout(()=>t.el.remove(),280);}});
+  dd.targets=dd.targets.filter(t=>!t.done);
+  drawRing(clamp(left/BN.seconds,0,1),String(Math.max(0,Math.ceil(left))));
+  if(left<=0)endDD();
+}
+function endDD(){
+  dd.phase='summary';dd.targets.forEach(t=>t.el.remove());dd.targets=[];
+  const total=dd.total;const toBalPre=s.balance>0?Math.min(s.balance,total*CONFIG.SPLIT_TO_BALANCE):0;
+  const {toBal,toCash}=applyPayout(total);s.stats.dds++;s.stats.bestDD=Math.max(s.stats.bestDD,total);
+  sfx.fanfare();setTimeout(()=>sfx.kaching(),300);
+  ddSummary.innerHTML=`<div class="sheet"><div class="stamp green slam" style="top:14px;right:8px">BONUS PAID</div>
+    <h2>DOUBLE DOWN: SUMMARY</h2><p>${total>0?'Your thumbs did the lord\'s work.':'You tapped nothing. The coins are offended.'}</p>
+    <table class="bd"><tr><td>Coins grabbed ●</td><td>${dd.hits}</td></tr><tr><td>Coins missed ✖</td><td>${dd.miss}</td></tr><tr><td>Best combo</td><td>×${dd.best}</td></tr>
+    <tr><td>✔ Paid to The Balance</td><td style="color:var(--pgrn)">−${money(toBal)}</td></tr><tr><td>● Added to cash</td><td>+${money(toCash)}</td></tr>
+    <tr class="tot"><td>TOTAL PAYOUT</td><td>${money(total)}</td></tr></table>
+    <div class="btns"><button class="bigbtn y" id="ddDone">BACK TO THE GRIND</button></div></div>`;
+  ddSummary.classList.remove('hidden');
+  $('ddDone').onclick=()=>{ddWrap.classList.add('hidden');ddSummary.classList.add('hidden');dd.active=false;dd.phase='';memo.textContent=`Double Down paid ${money(total)}. Your thumbs are filing for overtime.`;save();updateUI();};
+  save();updateUI();
+}
+ddField.addEventListener('pointerdown',e=>{
+  if(dd.phase!=='play')return;const el=e.target.closest('.tgt');if(!el||!el._t||el._t.done)return;e.preventDefault();hitTarget(el._t);
+});
+
+/* =================================================================
+   Rebirth: Second Wind
+   ================================================================= */
+function paidModal(){
+  sfx.fanfare();
+  openModal(`<div class="stamp green slam" style="top:12px;right:10px">PAID</div>
+    <h2>PAID IN FULL ✔</h2>
+    <p>The Balance reads <b>$0.00</b>. You have, against all odds and several bounced checks, paid <b>${creditorFor(s.chapter)}</b>.</p>
+    <div class="quote">“…I'll be in touch.”<br><small>— The Collector, sounding mildly offended</small></div>
+    <p>Rebirth to earn <b>✎ ${inkGain()} Fresh Ink</b> (permanent bonuses) and start a bigger, funnier debt. Or take a victory lap: every roll is pure cash now.</p>
+    <div class="btns"><button class="bigbtn" data-act="openRebirth">REBIRTH: SECOND WIND (+✎ ${inkGain()})</button><button class="bigbtn g" data-act="close">VICTORY LAP (KEEP ROLLING)</button></div>`);
+}
+function openRebirth(){
+  const ch=s.chapter+1,debt=debtFor(ch),gain=inkGain();const p=s.stats;
+  const lines=[
+    `Prior balance: <b>${exact(0)}</b> ✔ — framed, hung in the hallway.`,
+    `Rolls thrown: <b>${s.rolls}</b> — "each one a tiny act of hope."`,
+    p.busts===0?`Busts: <b>0</b> — suspiciously clean. The Collector squints.`:`Busts: <b>${p.busts}</b> (worst ${money(p.worstBust)}) — Mr. Pennington brings it up at parties.`,
+    `Interest absorbed: <b>${money(p.interest)}</b> — they kept the receipt.`,
+    `Dice employed: <b>${diceCount()}</b> — retired with minimal severance and a pen.`,
+    p.dds>0?`Double Downs: <b>${p.dds}</b> (best ${money(p.bestDD)}) — your thumbs remember.`:`Double Downs: <b>0</b> — the coins never met you.`,
+    `Excuses heard: <b>${p.heard}</b>, bought off: <b>${p.dismissed}</b> — kept on file. Alphabetized.`,
+    `Old creditor <b>${creditorFor(s.chapter)}</b> sends regards (and a fruit basket with a bill inside).`
+  ];
+  openModal(`<div class="stamp" id="stampEl" style="top:96px">FRESH START</div>
+    <h2>STATEMENT OF ACCOUNT</h2>
+    <p style="margin-bottom:2px"><b>Chapter ${ch}</b> · ${creditorFor(ch)}</p>
+    <p style="font-size:.8rem;opacity:.8;margin-bottom:4px">Carried over from Chapter ${s.chapter}, in case you forgot (we didn't):</p>
+    <ul class="cb">${lines.map(l=>`<li>${l}</li>`).join('')}</ul>
+    <div class="srow"><span>NEW PRINCIPAL</span><span style="color:var(--pred)">${exact(debt)}</span></div>
+    <div class="srow"><span>FRESH INK EARNED</span><span>✎ +${gain}</span></div>
+    <div class="srow" style="font-size:.74rem;opacity:.8"><span>RESETS: debt, cash, upgrades, roll value</span><span></span></div>
+    <div class="btns" id="rbBtns"><button class="bigbtn" data-act="stamp">STAMP IT: FRESH START</button><button class="bigbtn g" data-act="close">NOT YET</button></div>`);
+}
+function doRebirth(){
+  const gain=inkGain();
+  s.prev={chapter:s.chapter,rolls:s.rolls,busts:s.stats.busts,worstBust:s.stats.worstBust,dice:diceCount()};
+  s.ink+=gain;s.chapter++;s.rebirths++;
+  s.debt0=debtFor(s.chapter);s.balance=s.debt0;s.cash=startCashFor(s.perks.pocket);
+  s.up={value:0,dice:0,cool:0,screen:0,dd:0,auto:0};s.redline=0;s.rolls=0;s.paidSeen=false;
+  s.excuses=[];s.stats=newStats();s.spent=0;s.vals=[1];hold=null;
+  buildTray();renderVM();save();
+  memo.textContent=`Chapter ${s.chapter}. New creditor, same dice. The déjà vu is deliberate.`;
+}
+
+/* =================================================================
+   settings
+   ================================================================= */
+function settingsModal(){
+  openModal(`<h2>SETTINGS</h2>
+    <div class="tgl"><span>Sound</span><button data-act="tglSound" class="${s.muted?'off':''}">${s.muted?'MUTED ✖':'ON ✔'}</button></div>
+    <div class="tgl"><span>Screen shake on busts</span><button data-act="tglShake" class="${s.shake?'':'off'}">${s.shake?'ON ✔':'OFF ✖'}</button></div>
+    <div class="tgl" style="border:0"><span>Erase all progress<br><small style="font-weight:400">Chapters, Fresh Ink, everything.</small></span><button data-act="reset" style="background:var(--pred);color:#fff">RESET</button></div>
+    <p style="font-size:.74rem;opacity:.7;margin:8px 0 0">Progress saves automatically in this browser. Tunable numbers are listed at the top of the source file.</p>
+    <div class="btns"><button class="bigbtn" data-act="close">DONE</button></div>`);
+}
+let resetArmed=false;
+const ACT={
+  close:()=>closeModal(),
+  intro:()=>{s.introSeen=true;closeModal();save();},
+  callPay:b=>{if(b.classList.contains('dis')){sfx.deny();toast('Not enough cash for the fee. You can still let it ring…');return;}resolveCall(true);},
+  callRing:()=>resolveCall(false),
+  bustOk:()=>{closeModal();},
+  openRebirth:()=>{closeModal();openRebirth();},
+  stamp:()=>{
+    const st=$('stampEl');if(!st||st.classList.contains('slam'))return;
+    st.classList.add('slam');sfx.stamp();shake();doRebirth();
+    $('rbBtns').innerHTML=`<button class="bigbtn y" data-act="begin">BEGIN CHAPTER ${s.chapter}</button>`;
+    toast(`<b>✎ +${s.prev?'':''}Fresh Ink banked.</b> Spend it in The Ink Well.`);
+  },
+  begin:()=>{closeModal();},
+  tglSound:b=>{s.muted=!s.muted;ensureAudio();paintMute();settingsModal();save();},
+  tglShake:()=>{s.shake=!s.shake;settingsModal();save();},
+  reset:b=>{
+    if(!resetArmed){resetArmed=true;b.textContent='TAP AGAIN';setTimeout(()=>{resetArmed=false;if(b.isConnected)b.textContent='RESET';},3000);return;}
+    noSave=true;try{localStorage.removeItem(KEY);}catch(e){}location.reload();
+  }
+};
+modalWrap.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&ACT[b.dataset.act])ACT[b.dataset.act](b);});
+
+function afterAction(){
+  if(s.balance<=0&&!s.paidSeen&&!modalOpen&&!dd.active&&!rolling){s.paidSeen=true;paidModal();save();}
+}
+
+/* =================================================================
+   UI update
+   ================================================================= */
+function fitBalance(force){
+  const txt=exact(s.balance),paid=s.balance<=0;const w=balWrap.clientWidth;
+  const key=txt+'|'+paid+'|'+w;if(!force&&cache.bal===key)return;cache.bal=key;
+  drawPixelText(balCv,txt,paid?'#17703a':'#b8101c','#17120e',w);
+  $('balSr').textContent='The Balance: '+txt;
+}
+function paintMute(){
+  $('muteBtn').classList.toggle('off',s.muted);
+  $('muteBtn').setAttribute('aria-label',s.muted?'Unmute sound':'Mute sound');
+  $('muteBtn').innerHTML=s.muted
+   ?'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'
+   :'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>';
+}
+function updateUI(){
+  fitBalance();
+  const paid=s.balance<=0;
+  const pct=clamp((1-s.balance/s.debt0)*100,0,100);
+  $('barFill').style.width=pct+'%';
+  setText('pctTxt',(pct<1?pct.toFixed(2):pct.toFixed(1))+'% paid');
+  setText('paidTxt','✔ Paid '+money(s.stats.paidIn));
+  setText('chipCash',money(s.cash));setText('chipPip',money(rollValue()*inkMult()));setText('chipRoll',money(avgPay()));
+  setText('chTag','CH. '+s.chapter);setText('creditor',creditorFor(s.chapter));
+  const bt=$('balTag');const t=paid?'✔ PAID IN FULL':'▼ THE BALANCE · PAST DUE';if(cache.balTag!==t){cache.balTag=t;bt.textContent=t;bt.classList.toggle('ok',paid);}
+  $('rebirthBanner').classList.toggle('hidden',!paid);
+  if(paid){setText('rebirthBtn',`REBIRTH: SECOND WIND (+✎ ${inkGain()} INK)`);}
+  // meter
+  const r=s.redline;const zone=r>=80?'hot':r>=50?'warm':'cool';
+  if(meterEl.dataset.zone!==zone)meterEl.dataset.zone=zone;
+  $('mFill').style.height=r+'%';setText('mRead',Math.floor(r)+'%');
+  setText('mIcon',zone==='hot'?'✖':zone==='warm'?'▲':'✔');setText('mWord',zone==='hot'?'HOT':zone==='warm'?'WARM':'COOL');
+  // roll btn
+  const lk=locked();rollBtn.classList.toggle('dis',lk);rollBtn.setAttribute('aria-disabled',lk);
+  setText('rollTxt',hold?'ON HOLD…':rolling?'ROLLING…':'ROLL');
+  setText('rollSub',hold?'The Collector is reading an excuse aloud':rolling?'dice in the air':'tap · space · '+STANCES[s.stance].name+' ×'+STANCES[s.stance].pay);
+  updateShop();
+  // voicemail dynamic bits
+  document.querySelectorAll('.vm-pay').forEach(b=>{const c=dismissCost();const aff=s.cash>=c;const tx='PAY '+money(c);if(b.textContent!==tx)b.textContent=tx;b.classList.toggle('no',!aff);});
+}
+
+/* =================================================================
+   main loop
+   ================================================================= */
+let last=performance.now(),uiAcc=0,saveAcc=0,tickAcc=0,autoAcc=0,autoShow=0;
+function frame(now){
+  const dt=Math.min(.25,(now-last)/1000);last=now;
+  if(dd.active){ddUpdate(dt);}
+  else if(!modalOpen){
+    if(s.balance>0){
+      let dec=decayPerSec();if(hold)dec*=2.5;
+      s.redline=Math.max(0,s.redline-dec*dt);
+      if(s.redline>20&&s.redline<100){tickAcc+=dt*1000;const iv=900-s.redline*7.5;if(tickAcc>=iv){tickAcc=0;sfx.tick(s.redline);}}
+    }else s.redline=0;
+    if(hold){hold.t+=dt;const el=document.querySelector('.vm-type');
+      if(el){const n=Math.floor(hold.text.length*clamp(hold.t/(hold.dur*.9),0,1));const tx=hold.text.slice(0,n);if(el.textContent!==tx)el.textContent=tx;}
+      const pr=document.querySelector('.vm-prog');if(pr)pr.style.width=clamp(hold.t/hold.dur*100,0,100)+'%';
+      if(hold.t>=hold.dur)finishHold();}
+    if(s.up.auto>0){
+      autoAcc+=CONFIG.AUTO.rollsPerSecPerLvl*s.up.auto*avgPay()*CONFIG.AUTO.efficiency*dt;autoShow+=dt;
+      if(autoShow>=1){const a=autoAcc;autoAcc=0;autoShow=0;const r=applyPayout(a);
+        floatText('⟳ +'+money(r.toCash+r.toBal),'tag2',floatsEl,rnd(30,70),rnd(70,85));
+        if(r.toBal>0){balCv.classList.remove('dip');void balCv.offsetWidth;balCv.classList.add('dip');}}
+    }
+    afterAction();
+  }
+  uiAcc+=dt;if(uiAcc>.08){uiAcc=0;updateUI();}
+  saveAcc+=dt;if(saveAcc>5){saveAcc=0;save();}
+  requestAnimationFrame(frame);
+}
+
+/* =================================================================
+   wiring
+   ================================================================= */
+rollBtn.addEventListener('click',doRoll);
+document.addEventListener('keydown',e=>{
+  if((e.code==='Space'||e.code==='Enter')&&!e.repeat){const tg=e.target;if(tg&&(tg.tagName==='BUTTON'||tg.tagName==='INPUT'))return;e.preventDefault();doRoll();}
+});
+$('muteBtn').onclick=()=>{s.muted=!s.muted;ensureAudio();paintMute();if(!s.muted)sfx.blip(660);save();};
+$('setBtn').onclick=()=>{ensureAudio();if(!modalOpen&&!dd.active)settingsModal();};
+$('rebirthBtn').onclick=()=>{ensureAudio();if(!modalOpen&&!dd.active)openRebirth();};
+$('vmList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-vm]');if(!b)return;const id=+b.closest('.slip').dataset.id;
+  if(b.dataset.vm==='hear'){if(hold){toast('Already on hold. Hold music is mandatory.');return;}startHold(id);}else payDismiss(id);
+});
+window.addEventListener('resize',()=>fitBalance(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+window.addEventListener('pagehide',save);
+document.addEventListener('pointerdown',()=>ensureAudio(),{once:true});
+
+buildRows(UPG,$('lines'),buyUpgrade);
+buildRows(PERKS,$('inkLines'),buyPerk);
+buildTray();buildStances();renderVM();paintMute();updateUI();fitBalance(true);
+if(!s.introSeen&&s.lifeRolls===0&&s.chapter===1){
+  openModal(`<div class="stamp" style="top:14px;right:10px;opacity:.9">PAST DUE</div>
+    <h2>FINAL NOTICE</h2>
+    <p>You owe <b>$4,200.00</b>. Don't ask how. It involved a boat, a bet, and a very persuasive pigeon.</p>
+    <div class="quote">“We'd like to settle this like adults. With dice.”<br><small>— First Penny Savings &amp; Loan</small></div>
+    <ul class="cb"><li><b>ROLL</b> the dice. Half of every payout shrinks <b>The Balance</b> (✔ green). The other half is cash (● yellow) for the shop.</li>
+    <li>Rolling heats the <b>Redline</b>. Fill it and a <b>Collection Call</b> hits: pay a fee, or take the bust.</li>
+    <li>Riskier roll styles pay more but heat faster. Match your nerve to your cooling.</li></ul>
+    <div class="btns"><button class="bigbtn y" data-act="intro">FINE. I'LL ROLL.</button></div>`);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
