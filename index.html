@@ -2,1554 +2,1924 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<title>Level 0</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Level 0 — The Lobby</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Courier New',ui-monospace,monospace;color:#f1e6a0;-webkit-user-select:none;user-select:none}
-  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
-  #menu{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;overflow:auto;
-    background:radial-gradient(ellipse at center,rgba(38,30,4,.55),rgba(0,0,0,.93));backdrop-filter:blur(2px)}
-  #menu .panel{margin:5vh auto;width:min(760px,94vw);padding:28px 30px;border:1px solid rgba(240,220,120,.25);background:rgba(18,14,2,.72);box-shadow:0 0 80px rgba(220,190,60,.12)}
-  h1{font-size:clamp(34px,7vw,64px);letter-spacing:.35em;margin:0;font-weight:700;color:#f6e98a;text-shadow:0 0 24px rgba(255,230,90,.45);animation:flick 5s infinite}
-  @keyframes flick{0%,100%{opacity:1}46%{opacity:1}47%{opacity:.55}48%{opacity:1}73%{opacity:1}74%{opacity:.7}75%{opacity:.95}}
-  .sub{opacity:.75;margin:6px 0 18px;font-size:13px;letter-spacing:.08em}
-  .btn{cursor:pointer;border:1px solid rgba(246,233,138,.6);background:rgba(246,233,138,.08);color:#f6e98a;padding:10px 18px;font:inherit;letter-spacing:.2em;transition:.15s}
-  .btn:hover{background:rgba(246,233,138,.25)}
-  .btn.big{font-size:20px;padding:14px 36px;margin:8px 0 18px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;font-size:12px;opacity:.85;margin-bottom:16px}
-  .grid2 b{color:#fff3a0;display:inline-block;min-width:92px}
-  .row{display:grid;grid-template-columns:160px 1fr 54px;align-items:center;gap:10px;font-size:12px;margin:5px 0}
-  .row input[type=range]{width:100%;accent-color:#e9d75c}
-  .row output{text-align:right;opacity:.8}
-  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
-  #dbg{position:absolute;left:10px;top:8px;font-size:11px;line-height:1.35;white-space:pre;color:#e8dc8a;text-shadow:0 0 4px #000;display:none}
-  #toast{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);padding:6px 14px;background:rgba(0,0,0,.45);font-size:13px;letter-spacing:.12em;opacity:0;transition:opacity .4s}
-  #err{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:#100c00;color:#ffd47a;padding:30px;white-space:pre-wrap;font-size:13px;overflow:auto}
-  #touch{position:fixed;inset:0;z-index:8;display:none}
-  #touch .tb{position:absolute;bottom:22px;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,240,150,.5);background:rgba(255,240,150,.1);display:flex;align-items:center;justify-content:center;font-size:12px;pointer-events:auto}
-  #stick{position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid rgba(255,240,150,.35);display:none}
-  #stick i{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:rgba(255,240,150,.4)}
-  details summary{cursor:pointer;letter-spacing:.2em;margin:8px 0;color:#fff3a0}
-  .chk{display:flex;gap:10px;align-items:center;font-size:12px;margin:6px 0}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;color:#cfc8a8;
+    font-family:"Courier New",Courier,monospace;-webkit-user-select:none;user-select:none;touch-action:none}
+  canvas#gl{position:fixed;left:0;top:0;width:100%;height:100%;display:block;background:#000}
+  .hide{display:none!important}
+
+  /* ---- menu: plain typewriter card, nothing decorative ---- */
+  #menu{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(6,5,3,.94);overflow:auto;z-index:5}
+  #menu .col{max-width:640px;margin:0 0 0 clamp(20px,8vw,130px);padding:7vh 20px 9vh 0}
+  #menu h1{font-size:15px;font-weight:normal;letter-spacing:.46em;margin:0 0 26px;color:#e6dfc0}
+  #menu p{font-size:13px;line-height:1.7;color:#a39c80;margin:0 0 18px}
+  #menu .keys{display:grid;grid-template-columns:1fr 1fr;gap:3px 26px;font-size:12px;color:#8a846b;margin:0 0 30px}
+  #menu .keys b{color:#d6cfb0;font-weight:normal;display:inline-block;min-width:74px}
+  #menu h2{font-size:12px;font-weight:normal;letter-spacing:.3em;color:#d6cfb0;margin:0 0 8px;padding-top:6px}
+  .row{display:flex;align-items:center;gap:14px;font-size:12px;padding:5px 0;border-bottom:1px dotted #38351f}
+  .row label{flex:1;color:#b0a98d}
+  .row .v{width:48px;text-align:right;color:#d6cfb0}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:190px;height:1px;background:#7a7456;outline:none;margin:0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:15px;background:#d6cfb0;border:0;border-radius:0}
+  input[type=range]::-moz-range-thumb{width:8px;height:15px;background:#d6cfb0;border:0;border-radius:0}
+  input[type=checkbox]{accent-color:#d6cfb0;width:14px;height:14px;margin:0 34px 0 0}
+  #menu button{font:inherit;font-size:12px;background:none;border:1px solid #6a6446;color:#e6dfc0;
+    padding:10px 24px;margin:28px 14px 0 0;letter-spacing:.24em;cursor:pointer;border-radius:0}
+  #menu button:hover{background:#e6dfc0;color:#0b0a06}
+  #menu .fine{font-size:11px;color:#6d6851;margin-top:26px}
+
+  #dbg{position:fixed;left:10px;top:10px;font-size:11px;line-height:1.4;color:#d8d2b4;white-space:pre;z-index:3;
+    background:rgba(0,0,0,.45);padding:6px 8px;pointer-events:none}
+  #toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%);font-size:12px;letter-spacing:.2em;color:#e6dfc0;
+    z-index:4;opacity:0;transition:opacity .5s;pointer-events:none;text-shadow:0 0 3px #000}
+  #load{position:fixed;left:0;top:0;right:0;bottom:0;background:#000;z-index:9;display:flex;align-items:center;justify-content:center;
+    font-size:12px;letter-spacing:.4em;color:#8a846b}
+  #err{position:fixed;left:20px;right:20px;bottom:20px;z-index:10;font-size:12px;color:#e8b8a0;white-space:pre-wrap}
+  #touchL,#touchR{position:fixed;top:0;bottom:0;z-index:2}
+  #touchL{left:0;width:50%}#touchR{right:0;width:50%}
 </style>
 </head>
-<body class="bg-black">
-<canvas id="c"></canvas>
-<div id="hud"><div id="dbg"></div><div id="toast"></div></div>
-<div id="touch">
-  <div id="stick"><i></i></div>
-  <div class="tb" id="tbFlash" style="right:100px">LIGHT</div>
-  <div class="tb" id="tbRun" style="right:24px">RUN</div>
-</div>
+<body>
+<canvas id="gl"></canvas>
+<div id="touchL" class="hide"></div><div id="touchR" class="hide"></div>
+<div id="dbg" class="hide"></div>
+<div id="toast"></div>
 <div id="err"></div>
+<div id="load">LOADING</div>
 
-<div id="menu">
-  <div class="panel">
+<div id="menu" class="hide">
+  <div class="col">
     <h1>LEVEL 0</h1>
-    <div class="sub">THE LOBBY &mdash; an endless expanse of moist carpet, mono-yellow wallpaper and the buzz of fluorescent lights. No objective. Just walk.</div>
-    <button class="btn big" id="enterBtn">ENTER</button>
-    <div class="grid2">
+    <p>Damp carpet, yellow paper on the walls, the hum of lights that were never switched on. There is nothing to find. Walk until the rooms stop making sense, then keep walking.</p>
+    <div class="keys">
       <div><b>W A S D</b> move</div><div><b>Mouse</b> look</div>
-      <div><b>Shift</b> sprint</div><div><b>C</b> crouch</div>
-      <div><b>F</b> flashlight</div><div><b>V</b> noclip fly</div>
-      <div><b>R</b> random location</div><div><b>M</b> mute</div>
-      <div><b>P</b> screenshot</div><div><b>F3</b> debug info</div>
-      <div><b>Esc</b> menu / settings</div><div><b>Touch</b> drag left / right</div>
+      <div><b>Shift</b> walk faster</div><div><b>C</b> crouch</div>
+      <div><b>F</b> flashlight</div><div><b>V</b> noclip</div>
+      <div><b>R</b> go somewhere else</div><div><b>M</b> mute</div>
+      <div><b>P</b> photograph</div><div><b>H</b> tape text on/off</div>
+      <div><b>F3</b> info</div><div><b>Esc</b> this page</div>
+      <div><b>Touch</b> left move, right look</div>
     </div>
-    <details open>
-      <summary>SETTINGS</summary>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px">
-        <button class="btn" data-preset="low" style="padding:6px 12px;letter-spacing:.1em">LOW</button>
-        <button class="btn" data-preset="med" style="padding:6px 12px;letter-spacing:.1em">MEDIUM</button>
-        <button class="btn" data-preset="high" style="padding:6px 12px;letter-spacing:.1em">HIGH</button>
-        <button class="btn" data-preset="ultra" style="padding:6px 12px;letter-spacing:.1em">ULTRA</button>
-        <button class="btn" id="newWorld" style="padding:6px 12px;letter-spacing:.1em">NEW WORLD</button>
-      </div>
-      <div id="settings"></div>
-    </details>
-    <div class="sub" id="seedInfo" style="margin-top:14px"></div>
+    <h2>SETTINGS</h2>
+    <div id="settings"></div>
+    <button id="enter">ENTER</button><button id="reset">RESET SETTINGS</button>
+    <p class="fine">Everything you see is traced per pixel on your graphics card. Lower render scale first if it stutters. Exposure starts at its lowest value on purpose.</p>
   </div>
 </div>
 
 <script>
 'use strict';
+(() => {
 /* =====================================================================
-   LEVEL 0 — THE LOBBY
-   WebGL2 ray-traced backrooms. Infinite procedural world, DDA grid ray
-   traversal in a fragment shader, soft-shadowed area lights, one-bounce
-   GI, temporal accumulation, bloom, auto-exposure and a VHS finish.
+   LEVEL 0  -  single file, WebGL2
+   Section map
+     1. utilities + settings + menu
+     2. audio (synthesised, no assets)
+     3. world generation (infinite, module based)
+     4. GLSL: shared / texture synthesis / light field / scene
+     5. GLSL: temporal AA / bloom / tape pass
+     6. GL setup + render pipeline
+     7. player, camera, input, main loop
    ===================================================================== */
+
+/* ===================== 1. UTILITIES ===================== */
 const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const TAU = Math.PI * 2;
+const fail = msg => { $('err').textContent += msg + '\n'; console.error(msg); };
 
-/* ---------------------------------------------------------------------
-   0. Settings
---------------------------------------------------------------------- */
-const SET_DEFS = [
-  {k:'scale',   l:'Render scale',        min:.35, max:1,   step:.05, v:.7,  fmt:v=>Math.round(v*100)+'%'},
-  {k:'auto',    l:'Adaptive resolution', type:'chk', v:true},
-  {k:'shadows', l:'Shadow rays / pixel', min:1,   max:5,   step:1,   v:4},
-  {k:'gi',      l:'GI bounce rays',      min:0,   max:2,   step:1,   v:1},
-  {k:'fov',     l:'Field of view',       min:60,  max:110, step:1,   v:80,  fmt:v=>v+'°'},
-  {k:'exposure',l:'Exposure',            min:.5,  max:2,   step:.05, v:1},
-  {k:'bloom',   l:'Bloom',               min:0,   max:2,   step:.05, v:.8},
-  {k:'vhs',     l:'VHS / tape look',     min:0,   max:1,   step:.05, v:.3},
-  {k:'grain',   l:'Film grain',          min:0,   max:1,   step:.05, v:.35},
-  {k:'flicker', l:'Light flicker',       min:0,   max:1,   step:.05, v:1},
-  {k:'volume',  l:'Volume',              min:0,   max:1,   step:.05, v:.7},
-  {k:'sens',    l:'Mouse sensitivity',   min:.3,  max:3,   step:.05, v:1}
+/* ---------- settings ---------- */
+const DEFS = [
+  // key, label, min, max, step, default, formatter
+  ['exposure', 'Exposure',            0.50, 1.60, 0.01, 0.50, v => v.toFixed(2)],
+  ['fov',      'Field of view',       60,   105,  1,    80,   v => v + '\u00b0'],
+  ['sens',     'Mouse sensitivity',   0.2,  3.0,  0.05, 1.0,  v => v.toFixed(2)],
+  ['scale',    'Render scale',        0.5,  2.0,  0.05, 1.0,  v => v.toFixed(2)],
+  ['view',     'View distance',       25,   62,   1,    58,   v => v + ' m'],
+  ['gi',       'Bounced light',       0,    1.6,  0.05, 1.0,  v => v.toFixed(2)],
+  ['bob',      'Walk sway',           0,    1.6,  0.05, 1.0,  v => v.toFixed(2)],
+  ['vhs',      'Tape wear',           0,    1,    0.01, 0.55, v => v.toFixed(2)],
+  ['warp',     'Tape warp',           0,    1,    0.01, 0.50, v => v.toFixed(2)],
+  ['grain',    'Grain',               0,    1,    0.01, 0.45, v => v.toFixed(2)],
+  ['vol',      'Volume',              0,    1,    0.01, 0.70, v => v.toFixed(2)]
 ];
-const PRESETS = {
-  low:  {scale:.45, auto:true, shadows:2, gi:0, bloom:.5},
-  med:  {scale:.6,  auto:true, shadows:3, gi:1, bloom:.7},
-  high: {scale:.8,  auto:true, shadows:4, gi:1, bloom:.8},
-  ultra:{scale:1,   auto:false,shadows:5, gi:2, bloom:1}
+const TOGGLES = [
+  ['taa',   'Temporal anti-aliasing', 1],
+  ['bloom', 'Light bloom',            1],
+  ['osd',   'Tape text',              1]
+];
+const S = {};
+function loadSettings(reset) {
+  let saved = {};
+  try { if (!reset) saved = JSON.parse(localStorage.getItem('level0.v2') || '{}'); } catch (e) {}
+  for (const d of DEFS) S[d[0]] = (saved[d[0]] !== undefined) ? clamp(+saved[d[0]], d[2], d[3]) : d[5];
+  for (const t of TOGGLES) S[t[0]] = (saved[t[0]] !== undefined) ? +saved[t[0]] : t[2];
+}
+function saveSettings() { try { localStorage.setItem('level0.v2', JSON.stringify(S)); } catch (e) {} }
+function buildSettingsUI() {
+  const host = $('settings'); host.innerHTML = '';
+  for (const d of DEFS) {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.textContent = d[1];
+    const inp = document.createElement('input'); inp.type = 'range';
+    inp.min = d[2]; inp.max = d[3]; inp.step = d[4]; inp.value = S[d[0]];
+    const val = document.createElement('span'); val.className = 'v'; val.textContent = d[6](S[d[0]]);
+    inp.addEventListener('input', () => {
+      S[d[0]] = +inp.value; val.textContent = d[6](S[d[0]]); saveSettings();
+      if (d[0] === 'vol') Snd.setVolume(S.vol);
+      if (d[0] === 'scale') G.needResize = true;
+    });
+    row.append(lab, inp, val); host.appendChild(row);
+  }
+  for (const t of TOGGLES) {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.textContent = t[1];
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!S[t[0]];
+    cb.addEventListener('change', () => { S[t[0]] = cb.checked ? 1 : 0; saveSettings(); });
+    row.append(lab, cb); host.appendChild(row);
+  }
+}
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1600);
+}
+
+/* shared mutable game state */
+const G = { needResize: true, paused: true, started: false, time: 0, frame: 0, fps: 60, showDbg: false, shot: false };
+
+/* ===================== 2. AUDIO ===================== */
+const Snd = {
+  ctx: null, muted: false, vol: 0.7, wet: 0.2, nextEvent: 25,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = this.ctx = new AC();
+    const master = this.master = c.createGain(); master.gain.value = 0;
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
+    master.connect(comp); comp.connect(c.destination);
+
+    const mk = (sec, fn) => {
+      const b = c.createBuffer(1, Math.floor(c.sampleRate * sec), c.sampleRate);
+      fn(b.getChannelData(0)); return b;
+    };
+    const white = mk(3, d => { for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; });
+    const brown = mk(5, d => { let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.4; } });
+    this.white = white;
+
+    // buses
+    const dry = c.createGain(); dry.connect(master);
+    const send = this.send = c.createGain(); send.gain.value = 0.2;
+    const conv = c.createConvolver();
+    const irLen = Math.floor(c.sampleRate * 2.6);
+    const ir = c.createBuffer(2, irLen, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch); let lp = 0;
+      for (let i = 0; i < irLen; i++) {
+        const t = i / irLen; lp += ((Math.random() * 2 - 1) - lp) * (0.55 - 0.45 * t);
+        d[i] = lp * Math.pow(1 - t, 3.4);
+      }
+    }
+    conv.buffer = ir;
+    const wet = this.wetGain = c.createGain(); wet.gain.value = 0.5;
+    send.connect(conv); conv.connect(wet); wet.connect(master);
+    this.dry = dry;
+
+    const loopSrc = (buf, rate) => { const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.playbackRate.value = rate || 1; s.start(); return s; };
+
+    // fluorescent ballast hum
+    const hum = this.hum = c.createGain(); hum.gain.value = 0.9; hum.connect(dry);
+    hum.connect(send);
+    [[60, 'sine', 0.034], [120, 'triangle', 0.022], [180, 'sine', 0.013], [240, 'triangle', 0.007], [300, 'sine', 0.003]].forEach(([f, ty, g]) => {
+      const o = c.createOscillator(); o.type = ty; o.frequency.value = f + (Math.random() - 0.5) * 0.15;
+      const gg = c.createGain(); gg.gain.value = g; o.connect(gg); gg.connect(hum); o.start();
+    });
+    // buzz layer with slow wobble
+    const bz = loopSrc(white, 1), bzf = c.createBiquadFilter(); bzf.type = 'bandpass'; bzf.frequency.value = 3100; bzf.Q.value = 9;
+    const bzg = c.createGain(); bzg.gain.value = 0.0045;
+    const lfo = c.createOscillator(); lfo.frequency.value = 0.23; const lfog = c.createGain(); lfog.gain.value = 0.0022;
+    lfo.connect(lfog); lfog.connect(bzg.gain); lfo.start();
+    bz.connect(bzf); bzf.connect(bzg); bzg.connect(hum);
+    // room tone + vents
+    const tn = loopSrc(brown, 0.8), tnf = c.createBiquadFilter(); tnf.type = 'lowpass'; tnf.frequency.value = 210;
+    const tng = c.createGain(); tng.gain.value = 0.2; tn.connect(tnf); tnf.connect(tng); tng.connect(dry);
+    const vt = loopSrc(white, 0.6), vtf = c.createBiquadFilter(); vtf.type = 'bandpass'; vtf.frequency.value = 520; vtf.Q.value = 0.5;
+    const vtg = this.vent = c.createGain(); vtg.gain.value = 0.011; vt.connect(vtf); vtf.connect(vtg); vtg.connect(dry); vtg.connect(send);
+    const vl = c.createOscillator(); vl.frequency.value = 0.041; const vlg = c.createGain(); vlg.gain.value = 0.006;
+    vl.connect(vlg); vlg.connect(vtg.gain); vl.start();
+    this.bz = bzg;
+    master.gain.setTargetAtTime(this.muted ? 0 : this.vol, c.currentTime, 1.5);
+  },
+  setVolume(v) { this.vol = v; if (this.ctx && !this.muted) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.08); },
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol, this.ctx.currentTime, 0.1);
+    toast(this.muted ? 'MUTED' : 'SOUND ON');
+  },
+  // soft carpet footfall
+  step(strength, pan) {
+    const c = this.ctx; if (!c || this.muted) return;
+    const t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = this.white; s.playbackRate.value = 0.6 + Math.random() * 0.3;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260 + Math.random() * 160; f.Q.value = 0.4;
+    const g = c.createGain(); g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.16 * strength, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + 0.16);
+    const p = c.createStereoPanner ? c.createStereoPanner() : null; if (p) p.pan.value = pan * 0.25;
+    s.connect(f); f.connect(g); if (p) { g.connect(p); p.connect(this.dry); p.connect(this.send); } else { g.connect(this.dry); }
+    s.start(t, Math.random() * 2, 0.2);
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(82, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.1);
+    const og = c.createGain(); og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(0.09 * strength, t + 0.01);
+    og.gain.exponentialRampToValueAtTime(0.0005, t + 0.14); o.connect(og); og.connect(this.dry); o.start(t); o.stop(t + 0.2);
+  },
+  // far-off events that you are never sure you heard
+  event() {
+    const c = this.ctx; if (!c || this.muted) return;
+    const t = c.currentTime, k = Math.random();
+    if (k < 0.45) { // distant thud through walls
+      const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(64, t); o.frequency.exponentialRampToValueAtTime(34, t + 0.35);
+      const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0005, t + 1.4);
+      o.connect(g); g.connect(this.send); g.connect(this.dry); o.start(t); o.stop(t + 1.6);
+    } else if (k < 0.8) { // slow low swell
+      const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 43 + Math.random() * 20;
+      const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t + 3.2); g.gain.linearRampToValueAtTime(0, t + 8);
+      o.connect(g); g.connect(this.dry); o.start(t); o.stop(t + 8.2);
+    } else { // fluorescent tick
+      const s = c.createBufferSource(); s.buffer = this.white; const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2400;
+      const g = c.createGain(); g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(0.0003, t + 0.05);
+      s.connect(f); f.connect(g); g.connect(this.dry); g.connect(this.send); s.start(t, Math.random(), 0.08);
+    }
+  },
+  powerThump() {                      // the building letting go of its power
+    const c = this.ctx; if (!c || this.muted) return;
+    const t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(58, t); o.frequency.exponentialRampToValueAtTime(26, t + 0.5);
+    const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0005, t + 1.2);
+    o.connect(g); g.connect(this.dry); g.connect(this.send); o.start(t); o.stop(t + 1.3);
+  },
+  update(dt, openness, lightProx, lamp) {
+    const c = this.ctx; if (!c) return;
+    const t = c.currentTime;
+    const out = lamp < 0.5;
+    this.wet += (0.08 + 0.55 * openness - this.wet) * Math.min(1, dt * 0.8);
+    this.send.gain.setTargetAtTime(this.wet, t, 0.2);
+    this.hum.gain.setTargetAtTime((0.65 + 0.55 * lightProx) * (out ? 0.05 : 1), t, out ? 0.03 : 0.25);
+    this.nextEvent -= dt;
+    if (this.nextEvent < 0) { this.event(); this.nextEvent = 35 + Math.random() * 90; }
+  }
 };
-const cfg = {};
-SET_DEFS.forEach(d => cfg[d.k] = d.v);
-try { Object.assign(cfg, JSON.parse(localStorage.getItem('level0cfg') || '{}')); } catch(e){}
-function saveCfg(){ try{ localStorage.setItem('level0cfg', JSON.stringify(cfg)); }catch(e){} }
 
-/* ---------------------------------------------------------------------
-   1. World constants + hashing  (shader reads the baked result)
---------------------------------------------------------------------- */
-const S = 2.4;        // cell size (m)  = 4 ceiling tiles
-const T = 0.14;       // wall thickness
-const H = 2.7;        // ceiling height
-const BS = 12;        // block size in cells
-const WIN = 64;       // world texture window (cells)
-const DW = 0.46, DH = 2.1, HALFH = 1.05;
+/* ===================== 3. WORLD GENERATION =====================
+   The world is a grid of 0.5 m cells.  A "module" is 6x6 cells (3 m) and is
+   the pitch of the ceiling lights, so lamps always sit centred in their
+   bay and never clip a wall.  Horizontal bands (corridors / halls) are cut
+   into rooms; walls live on module lines and are one cell thick.
+   Every cell has a ceiling height; height 0 means solid.  Doorways are
+   cased openings (a cell with a lowered header) - never doors.
+   Cell texture channels:  R ceiling (x0.05 m)  G class (0 open, 1 opening,
+   2 solid)  B light state (mode | seed << 3)  A unused.
+   =================================================================== */
+const M = 6;                       // cells per module
+const CH = 32;                     // cells per chunk edge
+const TWC = 512;                   // torus size in cells
+const CHN = TWC / CH;              // chunks per torus edge
+const GEN_R = 6;                   // chunk radius kept alive (96 m)
+const SEED = 1996;
+const SRM = 12, SCM = 16;          // super row / column size in modules
+const LINT = [42, 42, 45, 48];     // header heights (x0.05 m) : 2.10 2.10 2.25 2.40
+const pmod = (a, n) => ((a % n) + n) % n;
 
-let SEED = (parseInt(location.hash.slice(1)) || (((Math.random()*9e5)|0) + 1000));
-
-function hu(a, b, s){
-  let h = (Math.imul(a|0, 0x27d4eb2d) ^ Math.imul(b|0, 0x165667b1) ^ Math.imul(((s|0) + SEED*31 + 1)|0, 0x9e3779b9)) >>> 0;
-  h ^= h >>> 15; h = Math.imul(h, 0x85ebca6b) >>> 0;
-  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35) >>> 0;
-  h ^= h >>> 16;
+function fm(h) { h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return h | 0; }
+function H3(a, b, c) {
+  let h = fm((a | 0) + Math.imul(SEED, 0x9e3779b1));
+  h = fm(h ^ (b | 0) ^ 0x1b873593);
+  h = fm(h + Math.imul(c | 0, 0x6b43a9b5));
   return h >>> 0;
 }
-const hf = (a, b, s) => hu(a, b, s) / 4294967296;
+const rn = (a, b, c) => H3(a, b, c) / 4294967296;
 
-/* wall piece table: [u0,u1,y0,y1] along the wall band — MUST match the shader */
-function pieceCount(t){ return [0,1,3,3,1,4][t]; }
-function piece(t, p, k){
-  if (t === 1) return [0, S, 0, H];
-  if (t === 2){
-    const c = 0.80 + p*0.28;
-    if (k === 0) return [0, c-DW, 0, H];
-    if (k === 1) return [c+DW, S, 0, H];
-    return [c-DW, c+DW, DH, H];
+/* ---- ceiling heights: mostly ordinary, a few that feel slightly wrong ---- */
+const CEIL_SET = [[2.5, .12], [2.7, .45], [2.8, .15], [3.0, .10], [3.3, .08], [3.8, .05], [4.4, .05]];
+function pickCeil(r) {
+  let a = 0;
+  for (const [h, w] of CEIL_SET) { a += w; if (r < a) return Math.round(h / 0.05); }
+  return 54;
+}
+const BAND_W = [[1, .28], [2, .32], [3, .20], [4, .12], [5, .05], [6, .03]];
+function pickBand(r) { let a = 0; for (const [n, w] of BAND_W) { a += w; if (r < a) return n; } return 2; }
+const ROOM_W = [[1, .20], [2, .30], [3, .22], [4, .14], [5, .08], [6, .06]];
+function pickRoomW(r) { let a = 0; for (const [n, w] of ROOM_W) { a += w; if (r < a) return n; } return 2; }
+
+/* ---- rows of bands (y) ---- */
+const rowCache = new Map();
+function superRow(k) {
+  let s = rowCache.get(k); if (s) return s;
+  const s0 = k * SRM + Math.floor(rn(k, 1, 11) * 5) - 2;
+  const s1 = (k + 1) * SRM + Math.floor(rn(k + 1, 1, 11) * 5) - 2;
+  const arr = [s0]; let m = s0;
+  while (m < s1) {
+    let n = pickBand(rn(k, m, 12));
+    if (s1 - (m + n) < 1) n = s1 - m;
+    m += n; arr.push(m);
   }
-  if (t === 3){
-    if (k === 0) return [0, 0.32, 0, H];
-    if (k === 1) return [S-0.32, S, 0, H];
-    return [0.32, S-0.32, 2.25, H];
+  const bands = [];
+  for (let i = 0; i < arr.length - 1; i++) bands.push({ m0: arr[i], m1: arr[i + 1], seed: H3(k, arr[i], 77), cols: new Map() });
+  s = { arr, bands }; rowCache.set(k, s); return s;
+}
+function bandOf(my) {
+  const k = Math.floor(my / SRM);
+  for (let kk = k - 1; kk <= k + 1; kk++) {
+    const s = superRow(kk);
+    if (my >= s.arr[0] && my < s.arr[s.arr.length - 1]) {
+      for (let i = 0; i < s.bands.length; i++) if (my < s.bands[i].m1) return s.bands[i];
+    }
   }
-  if (t === 4) return [0, S, 0, HALFH];
-  if (k === 0) return [0, S, 0, 0.95];
-  if (k === 1) return [0, S, 2.05, H];
-  if (k === 2) return [0, 0.55, 0.95, 2.05];
-  return [S-0.55, S, 0.95, 2.05];
+  return superRow(k).bands[0];
 }
 
-/* ---------------------------------------------------------------------
-   2. Procedural architecture
-   Blocks of 12x12 cells pick a "personality": BSP-partitioned office
-   rooms, pillared halls, long corridors or open floor with partitions.
-   Walls: 0 none,1 solid,2 doorway,3 wide opening w/ header,4 half wall,5 window
---------------------------------------------------------------------- */
-const BT_ROOMS = 0, BT_HALL = 1, BT_CORR = 2, BT_OPEN = 3;
-function blockType(bx, by){
-  if (bx >= -1 && bx <= 0 && by >= -1 && by <= 0) return BT_HALL;
-  const r = hf(bx, by, 1);
-  return r < 0.40 ? BT_ROOMS : r < 0.58 ? BT_HALL : r < 0.82 ? BT_CORR : BT_OPEN;
-}
-function wallKind(a, b, axis, salt, doorP){
-  const r = hf(a, b, salt + axis*7 + 90);
-  const pos = hu(a, b, salt + 5 + axis) & 3;
-  if (r < doorP) return (hf(a, b, salt + 11) < 0.65 ? 2 : 3) | (pos << 3);
-  const r2 = hf(a, b, salt + 13 + axis);
-  if (r2 < 0.05) return 5;
-  if (r2 < 0.09) return 4;
-  return 1;
-}
-function runWall(a, b, axis, salt, prob, len){
-  const off = hu(a, axis, salt) % len;
-  return hf(a, Math.floor((b + off) / len), salt*3 + axis + 200) < prob;
-}
-function borderEdge(axis, a, b){
-  const bA = Math.floor(a / BS), bB = Math.floor(b / BS);
-  let t1, t2;
-  if (axis === 0){ t1 = blockType(bA-1, bB); t2 = blockType(bA, bB); }
-  else            { t1 = blockType(bB, bA-1); t2 = blockType(bB, bA); }
-  const o1 = (t1 === BT_HALL || t1 === BT_OPEN), o2 = (t2 === BT_HALL || t2 === BT_OPEN);
-  const open = o1 || o2, both = o1 && o2;
-  const prob = both ? 0.04 : open ? 0.30 : 0.82;
-  if (!runWall(a, b, axis, 60, prob, 3)) return 0;
-  return wallKind(a, b, axis, 60, open ? 0.35 : 0.28);
-}
-function bspNodeChoose(x0, y0, w, h, id, d){
-  if (w < 5 && h < 5) return null;
-  if (d >= 1 && ((id >>> 8) & 255) < 64) return null;
-  let ax;
-  if (w >= 5 && h >= 5) ax = w > h ? 0 : (h > w ? 1 : (id & 1)); else ax = w >= 5 ? 0 : 1;
-  const len = ax === 0 ? w : h;
-  const s0 = ax === 0 ? x0 : y0;
-  return { ax, s: s0 + 2 + ((id >>> 12) % (len - 3)) };
-}
-function splitEdge(id, k, r0, len){
-  const d1 = r0 + (hu(id, 1, 3) % len);
-  const d2 = len >= 6 ? r0 + (hu(id, 2, 3) % len) : -99999;
-  const d3 = len >= 9 ? r0 + (hu(id, 3, 3) % len) : -99999;
-  if (k === d1 || k === d2 || k === d3){
-    return (hf(id, k, 4) < 0.6 ? 2 : 3) | ((hu(id, k, 5) & 3) << 3);
+/* ---- rooms along a band (x) ---- */
+function colsOf(band, kx) {
+  let c = band.cols.get(kx); if (c) return c;
+  const corridor = (band.m1 - band.m0) === 1, bs = band.seed;
+  const s0 = kx * SCM + Math.floor(rn(bs, kx, 21) * 7) - 3;
+  const s1 = (kx + 1) * SCM + Math.floor(rn(bs, kx + 1, 21) * 7) - 3;
+  /* dream logic: some stretches repeat the same room again and again (deja vu),
+     and some corridors simply refuse to end for 48 metres */
+  const rep = !corridor && rn(bs, kx, 28) < 0.14;
+  const longHall = corridor && rn(bs, kx, 29) < 0.22;
+  const wRep = pickRoomW(rn(bs, kx, 30));
+  const b = [s0]; let m = s0;
+  while (m < s1) {
+    let w = longHall ? (s1 - m) : rep ? wRep : corridor ? 3 + Math.floor(rn(bs, m, 22) * 7) : pickRoomW(rn(bs, m, 22));
+    if (s1 - (m + w) < 1) w = s1 - m;
+    m += w; b.push(m);
   }
-  const r2 = hf(id, k, 6);
-  if (r2 < 0.07) return 5;
-  if (r2 < 0.11) return 4;
-  return 1;
+  const rooms = []; let prev = null;
+  for (let i = 0; i < b.length - 1; i++) {
+    const seed = rep ? H3(bs, kx, 31) : H3(bs, b[i], 23);
+    const openL = prev !== null && !corridor && !rep && rn(bs, b[i], 24) < 0.20;      // colonnade instead of a wall
+    const ceil = openL ? prev.ceil : pickCeil(rn(seed, 1, 25));
+    const room = {
+      m0: b[i], m1: b[i + 1], seed, openL, openR: false, ceil, band, rects: null,
+      dark: rn(seed, 3, 26) < 0.05, sparse: rn(seed, 4, 27) < 0.12
+    };
+    if (prev) prev.openR = openL;
+    rooms.push(room); prev = room;
+  }
+  c = { b, rooms }; band.cols.set(kx, c); return c;
 }
-function bspWalk(i, j, bx, by, axis){
-  let x0 = bx*BS, y0 = by*BS, w = BS, h = BS, id = hu(bx, by, 5);
-  for (let d = 0; d < 4; d++){
-    const n = bspNodeChoose(x0, y0, w, h, id, d);
-    if (!n) break;
-    if (n.ax === 0){
-      if (axis === 0 && i === n.s) return { edge: splitEdge(id, j, y0, h), id };
-      if (i < n.s){ w = n.s - x0; id = hu(id|0, d, 1); } else { w = x0 + w - n.s; x0 = n.s; id = hu(id|0, d, 2); }
+function roomAt(band, mx) {
+  const kx = Math.floor(mx / SCM);
+  for (let kk = kx - 1; kk <= kx + 1; kk++) {
+    const c = colsOf(band, kk);
+    if (mx >= c.b[0] && mx < c.b[c.b.length - 1]) {
+      for (let i = 0; i < c.rooms.length; i++) if (mx < c.rooms[i].m1) return c.rooms[i];
+    }
+  }
+  return colsOf(band, kx).rooms[0];
+}
+
+/* ---- doorway (cased opening) placement ---- */
+function openV(room, mr) {            // opening in the east wall of a room, for module row mr
+  const band = room.band, nMods = band.m1 - band.m0, key = H3(room.seed, mr, 31);
+  const forced = (mr - band.m0) === ((room.seed >>> 5) % nMods);
+  if (!(forced || nMods === 1 || (key % 1000) / 1000 < 0.5)) return -1;
+  const wl = 3 + ((key >>> 10) % 3), off = (key >>> 14) % (6 - wl), li = (key >>> 18) & 3;
+  return (off << 8) | (wl << 4) | li;
+}
+function openH(band, mx) {            // opening in the north wall row of a band, for module column mx
+  const key = H3(band.seed, mx, 41);
+  const forced = pmod(mx, 5) === ((band.seed >>> 7) % 5);
+  if (!(forced || (key % 1000) / 1000 < 0.42)) return -1;
+  const wl = 3 + ((key >>> 10) % 3), off = (key >>> 14) % (6 - wl), li = (key >>> 18) & 3;
+  return (off << 8) | (wl << 4) | li;
+}
+
+/* ---- room furniture: only ever solid shapes that leave a clear ring ---- */
+function buildRects(room) {
+  const b = room.band, W = room.m1 - room.m0, Hm = b.m1 - b.m0, sd = room.seed, m0 = room.m0, bm0 = b.m0;
+  const r = [], t = rn(sd, 50, 0);
+  if (W >= 3 && Hm >= 3 && t < 0.16) {                       // structural columns on the module grid
+    const variant = rn(sd, 51, 0) < 0.6 ? 0 : 1;
+    for (let a = m0 + 1; a <= room.m1 - 2; a++) for (let q = bm0 + 1; q <= b.m1 - 2; q++) {
+      const ra = a - m0 - 1, rq = q - bm0 - 1;
+      if (variant === 0 ? (((ra & 1) === 0) && ((rq & 1) === 0)) : (rq === 0))
+        r.push({ x0: 6 * a + 4, x1: 6 * a + 5, y0: 6 * q, y1: 6 * q + 1, k: 0 });
+    }
+  } else if (W >= 3 && Hm >= 3 && t < 0.30) {                // a room inside the room
+    const iw = 1 + Math.floor(rn(sd, 52, 0) * (W - 2)), ih = 1 + Math.floor(rn(sd, 53, 0) * (Hm - 2));
+    const ia = m0 + 1 + Math.floor(rn(sd, 54, 0) * (W - 2 - iw + 1));
+    const iq = bm0 + 1 + Math.floor(rn(sd, 55, 0) * (Hm - 2 - ih + 1));
+    const x0 = 6 * ia - 1, x1 = 6 * (ia + iw) - 1, y0 = 6 * iq, y1 = 6 * (iq + ih);
+    const side = Math.floor(rn(sd, 58, 0) * 4), ol = 3 + (rn(sd, 59, 0) < 0.4 ? 1 : 0);
+    let os;
+    if (side < 2) os = x0 + 1 + Math.floor(rn(sd, 60, 0) * (x1 - x0 - 1 - ol + 1));
+    else os = y0 + 1 + Math.floor(rn(sd, 60, 0) * (y1 - y0 - 1 - ol + 1));
+    r.push({ x0, x1, y0, y1, k: 1, side, os, ol, lint: 42 });
+  } else if (W >= 2 && Hm >= 2 && t < 0.42) {                // wall stub that does not reach the far side
+    if (rn(sd, 56, 0) < 0.5) {
+      const d = m0 + Math.floor(rn(sd, 57, 0) * (W - 1)), x = 6 * (d + 1) - 1, lm = 1 + Math.floor(rn(sd, 61, 0) * (Hm - 1));
+      if (rn(sd, 62, 0) < 0.5) r.push({ x0: x, x1: x, y0: 6 * bm0, y1: 6 * (bm0 + lm), k: 0 });
+      else r.push({ x0: x, x1: x, y0: 6 * (b.m1 - lm), y1: 6 * b.m1, k: 0 });
     } else {
-      if (axis === 1 && j === n.s) return { edge: splitEdge(id, i, x0, w), id };
-      if (j < n.s){ h = n.s - y0; id = hu(id|0, d, 1); } else { h = y0 + h - n.s; y0 = n.s; id = hu(id|0, d, 2); }
+      const e = bm0 + 1 + Math.floor(rn(sd, 57, 0) * (Hm - 1)), y = 6 * e, lm = 1 + Math.floor(rn(sd, 61, 0) * (W - 1));
+      if (rn(sd, 62, 0) < 0.5) r.push({ x0: 6 * m0 - 1, x1: 6 * (m0 + lm) - 1, y0: y, y1: y, k: 0 });
+      else r.push({ x0: 6 * (room.m1 - lm) - 1, x1: 6 * room.m1 - 1, y0: y, y1: y, k: 0 });
+    }
+  } else if (t < 0.52 && room.ceil >= 54) {                  // low bulkhead across the room
+    const e = bm0 + Math.floor(rn(sd, 63, 0) * Hm);
+    r.push({ x0: 6 * m0, x1: 6 * room.m1 - 2, y0: 6 * e + 1, y1: 6 * e + 3, k: 2, h: 45 });
+  } else if (W >= 2 && t < 0.62) {                           // pilasters along the long walls
+    for (let a = m0; a <= room.m1 - 2; a++) {
+      if (((a - m0) & 1) === 0) continue;
+      r.push({ x0: 6 * a + 5, x1: 6 * a + 5, y0: 6 * bm0 + 1, y1: 6 * bm0 + 1, k: 0 });
+      r.push({ x0: 6 * a + 5, x1: 6 * a + 5, y0: 6 * b.m1 - 1, y1: 6 * b.m1 - 1, k: 0 });
     }
   }
-  return { edge: 0, id };
+  room.rects = r;
 }
-function edgeCode(axis, i, j){
-  if (Math.abs(i) <= 2 && Math.abs(j) <= 2) return 0;
-  const a = axis ? j : i, b = axis ? i : j;
-  const bA = Math.floor(a / BS), bB = Math.floor(b / BS), la = a - bA*BS;
-  if (la === 0) return borderEdge(axis, a, b);
-  const bx = axis ? bB : bA, by = axis ? bA : bB;
-  switch (blockType(bx, by)){
-    case BT_ROOMS: return bspWalk(i, j, bx, by, axis).edge;
-    case BT_HALL:  return runWall(a, b, axis, 61, 0.025, 2) ? wallKind(a, b, axis, 61, 0.5) : 0;
-    case BT_CORR: {
-      const o = hu(bx, by, 8) & 1, sp = 1 + (hu(bx, by, 10) % 2);
-      if (axis === o){ return (la % sp !== 0) ? 0 : wallKind(a, b, axis, 62, 0.13); }
-      return hf(a, b, 63) < 0.07 ? wallKind(a, b, axis, 63, 0.25) : 0;
+
+let gCls = 0;                                  // class of the last cell generated
+function interiorCeil(room, cx, cy) {
+  let h = room.ceil;
+  const rs = room.rects;
+  for (let i = 0; i < rs.length; i++) {
+    const q = rs[i];
+    if (cx < q.x0 || cx > q.x1 || cy < q.y0 || cy > q.y1) continue;
+    if (q.k === 0) { gCls = 2; return 0; }
+    if (q.k === 2) { if (q.h < h) h = q.h; continue; }
+    const onN = cy === q.y0, onS = cy === q.y1, onW = cx === q.x0, onE = cx === q.x1;
+    if (!(onN || onS || onW || onE)) continue;
+    let lint = 0;
+    if (q.side === 0 && onN && !onW && !onE) { if (cx >= q.os && cx < q.os + q.ol) lint = q.lint; }
+    else if (q.side === 1 && onS && !onW && !onE) { if (cx >= q.os && cx < q.os + q.ol) lint = q.lint; }
+    else if (q.side === 2 && onW && !onN && !onS) { if (cy >= q.os && cy < q.os + q.ol) lint = q.lint; }
+    else if (q.side === 3 && onE && !onN && !onS) { if (cy >= q.os && cy < q.os + q.ol) lint = q.lint; }
+    if (lint) { gCls = 1; return lint; }
+    gCls = 2; return 0;
+  }
+  gCls = 0; return h;
+}
+
+/* ceiling height (x0.05 m) of one cell, 0 = solid.  Sets gCls. */
+function genCell(cx, cy) {
+  const mx = Math.floor(cx / M), my = Math.floor(cy / M);
+  const lx = cx - mx * M, ly = cy - my * M;
+  const band = bandOf(my);
+  if (my === band.m0 && ly === 0) {                           // wall row
+    if (lx === 5) { gCls = 2; return 0; }
+    const o = openH(band, mx);
+    if (o >= 0) { const off = o >> 8, wl = (o >> 4) & 15; if (lx >= off && lx < off + wl) { gCls = 1; return LINT[o & 3]; } }
+    gCls = 2; return 0;
+  }
+  const room = roomAt(band, mx);
+  if (lx === 5 && mx === room.m1 - 1) {                       // east wall column of the room
+    if (room.openR) {                                         // colonnade: 2x2 piers every module
+      if (ly <= 1) { gCls = 2; return 0; }
+      gCls = 0; return room.ceil;
     }
-    default: return runWall(a, b, axis, 64, 0.10, 3) ? wallKind(a, b, axis, 64, 0.22) : 0;
+    if (ly >= 1) {
+      const o = openV(room, my);
+      if (o >= 0) { const off = o >> 8, wl = (o >> 4) & 15, r0 = ly - 1; if (r0 >= off && r0 < off + wl) { gCls = 1; return LINT[o & 3]; } }
+    }
+    gCls = 2; return 0;
   }
-}
-function pillarOf(i, j, bt, bx, by){
-  if (Math.abs(i) <= 2 && Math.abs(j) <= 2) return 0;
-  let w, d, x, z;
-  if (bt === BT_HALL){
-    if ((i & 1) || (j & 1)) return 0;
-    if (hf(i, j, 21) < 0.05) return 0;
-    const sz = [60, 90, 120][hu(bx, by, 20) % 3];
-    w = sz; d = (hu(bx, by, 22) % 4 === 0) ? Math.round(sz*0.6) : sz;
-    x = Math.floor((254 - w)/2); z = Math.floor((254 - d)/2);
-  } else {
-    const prob = bt === BT_ROOMS ? 0.035 : bt === BT_OPEN ? 0.07 : 0.0;
-    if (hf(i, j, 23) >= prob) return 0;
-    w = 40 + (hu(i, j, 24) % 9) * 10; d = 40 + (hu(i, j, 25) % 9) * 10;
-    x = 24 + Math.floor(hf(i, j, 26) * (206 - w)); z = 24 + Math.floor(hf(i, j, 27) * (206 - d));
-  }
-  return ((x) | (z << 8) | (w << 16) | (d << 24)) >>> 0;
-}
-function lightOf(i, j, bx, by){
-  const mode = hu(bx, by, 30) % 20;
-  const near = Math.abs(i) <= 3 && Math.abs(j) <= 3;
-  const m = near ? 0 : mode < 7 ? 0 : mode < 10 ? 1 : mode < 13 ? 2 : mode < 15 ? 3 : mode < 17 ? 4 : mode < 19 ? 5 : 6;
-  let on = true;
-  switch (m){
-    case 1: on = ((i + j) & 1) === 0; break;
-    case 2: on = (i & 1) === 0; break;
-    case 3: on = (j & 1) === 0; break;
-    case 4: case 5: on = ((i & 1) === 0 && (j & 1) === 0); break;
-    case 6: on = ((i & 3) === 0 && (j & 3) === 0); break;
-  }
-  if (!on) return 0;
-  let st = 1;
-  if (!near){
-    const r = hf(i, j, 31);
-    st = r < 0.06 ? 0 : r < 0.12 ? 2 : r < 0.16 ? 3 : 1;
-    if (m === 5) st = (st === 0) ? 0 : 3;
-  }
-  let orient = hu(bx, by, 33) & 1;
-  if (hf(i, j, 35) < 0.15) orient ^= 1;
-  const side = hu(i, j, 34) & 1;
-  const rnd = hu(i, j, 36) & 0xffff;
-  return (st | (orient << 2) | (side << 3) | (rnd << 4) | (1 << 20)) >>> 0;
-}
-function styleOf(i, j, bt, bx, by){
-  let sh;
-  if (bt === BT_ROOMS) sh = bspWalk(i, j, bx, by, -1).id;
-  else if (bt === BT_CORR) sh = hu(bx, by, 41);
-  else sh = hu(Math.floor(i/6), Math.floor(j/6), 42);
-  sh = hu(sh|0, 7, 43);
-  const r = sh % 10, ws = r < 4 ? 0 : r < 6 ? 1 : r < 8 ? 2 : 3;
-  const rh = (sh >>> 8) % 8, hue = rh < 4 ? 0 : rh < 6 ? 1 : rh < 7 ? 2 : 3;
-  const rc = (sh >>> 12) % 8, cs = rc < 3 ? 0 : rc < 5 ? 1 : rc < 6 ? 2 : 3;
-  const cv = (sh >>> 16) % 4, grime = (sh >>> 18) % 4;
-  const crown = (sh >>> 20) & 1;
-  const vent = (hu(i, j, 44) % 9 === 0) ? 1 : 0, vt = hu(i, j, 45) & 3;
-  const xr = hu(i, j, 46) & 0x7ff;
-  return (ws | (cs << 2) | (hue << 4) | (cv << 6) | (grime << 8) | (vent << 10) | (vt << 11) | (crown << 20) | (xr << 21)) >>> 0;
-}
-function genCell(i, j){
-  const bx = Math.floor(i/BS), by = Math.floor(j/BS), bt = blockType(bx, by);
-  const w = edgeCode(0, i, j), s = edgeCode(1, i, j);
-  const e3 = edgeCode(0, i, j-1), e4 = edgeCode(1, i-1, j);
-  let full = false, half = false;
-  for (const t of [w & 7, s & 7, e3 & 7, e4 & 7]){ if (t === 4) half = true; else if (t) full = true; }
-  const pc = full ? 2 : half ? 1 : 0;
-  const A = ((w & 31) | ((s & 31) << 5) | (pc << 10) | (bt << 12)) >>> 0;
-  return [A, pillarOf(i, j, bt, bx, by), lightOf(i, j, bx, by), styleOf(i, j, bt, bx, by)];
-}
-const cellCache = new Map();
-function getCell(i, j){
-  const k = (i + 1048576) * 2097152 + (j + 1048576);
-  let c = cellCache.get(k);
-  if (!c){
-    c = genCell(i, j);
-    if (cellCache.size > 40000) cellCache.clear();
-    cellCache.set(k, c);
-  }
-  return c;
+  if (room.openR && lx === 4 && mx === room.m1 - 1 && ly <= 1) { gCls = 2; return 0; }
+  if (!room.rects) buildRects(room);
+  return interiorCeil(room, cx, cy);
 }
 
-/* collision boxes (x0,z0,x1,z1) for everything that blocks a ~1.75m tall body */
-function cellBoxes(i, j, out){
-  const c = getCell(i, j), A = c[0], B = c[1], ox = i*S, oz = j*S;
-  const wt = A & 7, wp = (A >> 3) & 3, st = (A >> 5) & 7, sp = (A >> 8) & 3, pc = (A >> 10) & 3;
-  for (let k = 0, n = pieceCount(wt); k < n; k++){
-    const q = piece(wt, wp, k); if (q[2] < 1.75) out.push(ox, oz + q[0], ox + T, oz + q[1]);
+/* light state for the module (mx,my): 0 none, else mode | seed<<3
+   modes: 1 steady, 2 flickers in bursts, 3 failing, 4 dead panel, 5 dim */
+function lightMode(mx, my) {
+  const c0 = genCell(6 * mx + 2, 6 * my + 3);
+  if (c0 === 0 || gCls !== 0) return 0;
+  for (let dy = 2; dy <= 3; dy++) for (let dx = 0; dx <= 4; dx++) { const h = genCell(6 * mx + dx, 6 * my + dy); if (h !== c0 || gCls !== 0) return 0; }
+  for (let dx = 1; dx <= 3; dx++) {
+    let h = genCell(6 * mx + dx, 6 * my + 1); if (h !== c0 || gCls !== 0) return 0;
+    h = genCell(6 * mx + dx, 6 * my + 4); if (h !== c0 || gCls !== 0) return 0;
   }
-  for (let k = 0, n = pieceCount(st); k < n; k++){
-    const q = piece(st, sp, k); if (q[2] < 1.75) out.push(ox + q[0], oz, ox + q[1], oz + T);
-  }
-  if (pc) out.push(ox, oz, ox + T, oz + T);
-  const pw = (B >>> 16) & 255;
-  if (pw){
-    const px = ox + (B & 255)*0.01, pz = oz + ((B >>> 8) & 255)*0.01;
-    out.push(px, pz, px + pw*0.01, pz + (B >>> 24)*0.01);
-  }
+  const band = bandOf(my), room = roomAt(band, mx);
+  let mode = 1;
+  if (room.dark) mode = 4;
+  else if (room.sparse && ((mx + my) & 1)) mode = 4;
+  else { const r = rn(mx, my, 61); mode = r < 0.03 ? 4 : r < 0.07 ? 2 : r < 0.09 ? 3 : r < 0.14 ? 5 : 1; }
+  return mode | ((H3(mx, my, 62) & 31) << 3);
 }
 
-/* =====================================================================
-   3. SHADERS
-===================================================================== */
+/* ---- chunk streaming into the torus mirror ---- */
+const WD = new Uint8Array(TWC * TWC * 4);                     // CPU mirror (collision, audio)
+const chunkId = new Int32Array(CHN * CHN * 2).fill(-2147483648);
+const tmpChunk = new Uint8Array(CH * CH * 4);
+let chunkHook = null;
+const CHUNK_OFFS = [];
+for (let dy = -GEN_R; dy <= GEN_R; dy++) for (let dx = -GEN_R; dx <= GEN_R; dx++) CHUNK_OFFS.push([dx, dy]);
+CHUNK_OFFS.sort((a, b) => (a[0] * a[0] + a[1] * a[1]) - (b[0] * b[0] + b[1] * b[1]));
+
+function genChunk(ccx, ccy) {
+  const x0 = ccx * CH, y0 = ccy * CH;
+  for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
+    const cx = x0 + i, cy = y0 + j;
+    const h = genCell(cx, cy), cls = gCls;
+    let lm = 0;
+    if (pmod(cx, 6) === 2 && pmod(cy, 6) === 3) lm = lightMode(Math.floor(cx / 6), Math.floor(cy / 6));
+    const o = (j * CH + i) * 4;
+    tmpChunk[o] = h; tmpChunk[o + 1] = cls; tmpChunk[o + 2] = lm; tmpChunk[o + 3] = 255;
+    const wi = (((cy & 511) * TWC) + (cx & 511)) * 4;
+    WD[wi] = h; WD[wi + 1] = cls; WD[wi + 2] = lm; WD[wi + 3] = 255;
+  }
+  if (chunkHook) chunkHook((ccx & 15) * CH, (ccy & 15) * CH, tmpChunk);
+}
+function ensureChunks(cellX, cellY, budget) {
+  if (rowCache.size > 180) rowCache.clear();
+  const ccx = Math.floor(cellX / CH), ccy = Math.floor(cellY / CH);
+  let n = 0;
+  for (let k = 0; k < CHUNK_OFFS.length; k++) {
+    const a = ccx + CHUNK_OFFS[k][0], b = ccy + CHUNK_OFFS[k][1];
+    const s = ((a & 15) + 16 * (b & 15)) * 2;
+    if (chunkId[s] === a && chunkId[s + 1] === b) continue;
+    genChunk(a, b); chunkId[s] = a; chunkId[s + 1] = b;
+    if (++n >= budget) return n;
+  }
+  return n;
+}
+function resetWorld() { chunkId.fill(-2147483648); rowCache.clear(); WD.fill(0); }
+
+const cellUnits = (cx, cy) => WD[(((cy & 511) * TWC) + (cx & 511)) * 4];
+const ceilAt = (cx, cy) => cellUnits(cx, cy) * 0.05;
+
+function findOpen(cx, cy) {                                   // nearest cell with a clear 3x3 neighbourhood
+  for (let r = 0; r < 90; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    let ok = true;
+    for (let j = -1; j <= 1 && ok; j++) for (let i = -1; i <= 1; i++) {
+      const h = genCell(cx + dx + i, cy + dy + j);
+      if (h < 50 || gCls !== 0) { ok = false; break; }
+    }
+    if (ok) return [cx + dx, cy + dy];
+  }
+  return [cx, cy];
+}
+/* how open is the space around (x,y) in metres -> 0..1, used for reverb */
+function openness(x, y) {
+  let sum = 0; const N = 12;
+  for (let i = 0; i < N; i++) {
+    const a = i / N * TAU, dx = Math.cos(a) * 0.5, dy = Math.sin(a) * 0.5;
+    let px = x, py = y, d = 0;
+    for (; d < 30; d += 0.5) { px += dx; py += dy; if (ceilAt(Math.floor(px / 0.5), Math.floor(py / 0.5)) < 1.5) break; }
+    sum += d;
+  }
+  return clamp(sum / N / 14, 0, 1);
+}
+/* 0..1 closeness to the nearest working ceiling light */
+function lightProximity(x, y) {
+  const i = Math.round((x - 1.25) / 3), j = Math.round((y - 1.75) / 3);
+  const lc = (((6 * j + 3) & 511) * TWC + ((6 * i + 2) & 511)) * 4;
+  const st = WD[lc + 2], mode = st & 7;
+  if (mode === 0 || mode === 4) return 0;
+  const d = Math.hypot(x - (3 * i + 1.25), y - (3 * j + 1.75));
+  return clamp(1 - d / 3.2, 0, 1);
+}
+
+/* ===================== 4. GLSL : SHARED + TEXTURES + LIGHT FIELD ===================== */
 const VS_FULL = `#version 300 es
-out vec2 vUV;
+precision highp float;
+out vec2 vUv;
 void main(){
   vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-  vUV = p;
-  gl_Position = vec4(p*2.0 - 1.0, 0.0, 1.0);
+  vUv = p;
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-const FS_MAIN = `#version 300 es
-precision highp float;
-precision highp int;
-precision highp usampler2D;
-precision highp sampler2D;
+/* world access + lamp model, shared by every pass that needs lights */
+const GLSL_WORLD = `
+#define CS 0.5
+#define LI 11.0
+const vec3 LCOL = vec3(1.0, 0.965, 0.82);
+uniform sampler2D uWorld;
+uniform float uTime;
+uniform float uLamp;        /* building-wide power level, 1 normally */
+vec4 Wd(ivec2 c){ return texelFetch(uWorld, c & 511, 0); }
+float ceilH(ivec2 c){ return Wd(c).r * 12.75; }
+int pm3(int a){ return a - 3 * int(floor(float(a) / 3.0)); }   /* safe modulo for negative cells */
+float hash11(float p){ p = fract(p * .1031); p *= p + 33.33; p *= p + p; return fract(p); }
 
-uniform usampler2D uWorld;
-uniform sampler2D uHist;
-uniform vec2 uRes;
-uniform vec3 uCam, uPrevCam, uF, uR, uU, uPF, uPR, uPU;
-uniform vec2 uTan, uPrevTan, uJit;
-uniform float uTime, uHistW, uFlash, uFlick, uPixAng;
-uniform int uFrame, uShadowN, uGI;
-out vec4 fragColor;
-
-const float S = 2.4, T = 0.14, H = 2.7, HALFH = 1.05, DW = 0.46, DH = 2.1, PI = 3.14159265;
-const float LI = 38.0;
-const vec3 LCOL = vec3(1.0, 0.94, 0.78);
-const vec3 TRIM = vec3(0.66, 0.60, 0.30);
-const vec3 AMBT = vec3(0.62, 0.54, 0.24);
-
-/* ------------------------------ random / noise ------------------------------ */
-uint rng;
-float rnd(){
-  rng = rng*747796405u + 2891336453u;
-  uint w = ((rng >> ((rng >> 28u) + 4u)) ^ rng) * 277803737u;
-  w = (w >> 22u) ^ w;
-  return float(w) * (1.0/4294967296.0);
+/* lamp behaviour: 1 steady, 2 bursts of flicker, 3 failing ballast, 5 dim */
+float lightFlicker(int mode, float seed, float t){
+  if(mode == 5) return 0.55;
+  if(mode == 2){
+    float per = 14.0 + seed * 0.9;
+    float ph = fract(t / per + seed * 0.0371);
+    float burst = step(ph, 0.05);
+    float q = hash11(floor(t * 26.0) + seed * 17.0);
+    return mix(1.0, mix(0.16, 1.0, step(0.42, q)), burst);
+  }
+  if(mode == 3){
+    float q = hash11(floor(t * 9.0) + seed * 13.0);
+    float s = hash11(floor(t * 1.7) + seed * 5.0);
+    float v = 0.60 + 0.30 * s;
+    if(q > 0.93) v *= 0.22;
+    return v;
+  }
+  return 1.0;
 }
-uint ihash(uvec2 v){
-  uint h = v.x*0x27d4eb2du ^ (v.y*0x165667b1u + 0x9e3779b9u);
-  h ^= h >> 15; h *= 0x85ebca6bu; h ^= h >> 13; h *= 0xc2b2ae35u; h ^= h >> 16;
+float lightPower(int st){
+  int mode = st & 7; float seed = float(st >> 3);
+  return LI * uLamp * (0.94 + 0.12 * hash11(seed * 7.31 + 1.3)) * lightFlicker(mode, seed, uTime);
+}
+`;
+
+/* ---------- procedural material synthesis (rendered once, then mip-mapped) ---------- */
+const FS_TEXGEN = `#version 300 es
+precision highp float; precision highp int;
+in vec2 vUv;
+layout(location=0) out vec4 o0;
+layout(location=1) out vec4 o1;
+uniform int uType;
+uniform float uSize;
+
+float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+vec2  h22(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
+float vn(vec2 p, float per){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  vec2 i0 = mod(i, per), i1 = mod(i + 1.0, per);
+  float a = h12(i0), b = h12(vec2(i1.x, i0.y)), c = h12(vec2(i0.x, i1.y)), d = h12(i1);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 uv, float per, int oct){
+  float s = 0.0, a = 0.5, n = 0.0;
+  for(int i = 0; i < 8; i++){ if(i >= oct) break; s += a * vn(uv * per, per); n += a; per *= 2.0; a *= 0.5; }
+  return s / n;
+}
+vec4 pack(float h, float hx, float hy, float k, float ao){
+  vec2 s = clamp(-vec2(hx - h, hy - h) * k, -1.0, 1.0);
+  return vec4(s * 0.5 + 0.5, h, ao);
+}
+
+/* ---- carpet: tufted loops, one dome per cell, neighbours blended so no seams ---- */
+const float CN = 200.0;
+float carpetH(vec2 uv, out float rr, out float fleck){
+  vec2 q = uv * CN, id = floor(q), f = fract(q);
+  float h = 0.0; rr = 0.5; fleck = 0.0;
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    vec2 o = vec2(float(i), float(j));
+    vec2 cid = mod(id + o, CN);
+    vec2 jit = (h22(cid) - 0.5) * 0.35;
+    vec2 d = o + 0.5 + jit - f;
+    float r = h12(cid + 3.7);
+    float dome = smoothstep(0.62, 0.0, length(d)) * (0.45 + 0.55 * r);
+    if(dome > h){ h = dome; rr = r; fleck = h12(cid + 11.3); }
+  }
   return h;
 }
-float h2f(uvec2 v){ return float(ihash(v) >> 8) * (1.0/16777216.0); }
-float vnoise(vec2 p){
-  vec2 i = floor(p), f = fract(p);
-  f = f*f*(3.0 - 2.0*f);
-  uvec2 u = uvec2(ivec2(i));
-  float a = h2f(u), b = h2f(u + uvec2(1u,0u)), c = h2f(u + uvec2(0u,1u)), d = h2f(u + uvec2(1u,1u));
-  return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
+/* ---- wallpaper: 8 vertical stripes per 0.8 m, faint lattice motif, vinyl grain ---- */
+float wallH(vec2 uv, out float tone){
+  float su = fract(uv.x * 8.0);
+  float edge = min(su, 1.0 - su);
+  float groove = smoothstep(0.034, 0.0, edge);
+  float band = smoothstep(0.05, 0.28, edge);
+  vec2 m = vec2(uv.x * 16.0, uv.y * 8.0);
+  vec2 mf = fract(m) - 0.5;
+  float dia = 1.0 - smoothstep(0.0, 0.07, abs(mf.x) + abs(mf.y) * 0.6 - 0.20);
+  float grain = vn(uv * 256.0, 256.0);
+  float grain2 = vn(uv * 512.0, 512.0);
+  float parity = mod(floor(uv.x * 8.0), 2.0);
+  tone = 1.0 + 0.030 * (band - 0.5) - 0.085 * groove + 0.040 * dia + 0.035 * (grain - 0.5) + 0.012 * (parity - 0.5);
+  return band * 0.40 - groove * 0.85 + dia * 0.20 + (grain - 0.5) * 0.10 + (grain2 - 0.5) * 0.05;
 }
-/* footprint aware noise: fades to its mean when the pattern is smaller than a pixel */
-float fnoise(vec2 p, float foot){
-  float w = 1.0 - smoothstep(0.35, 1.1, foot);
-  return mix(0.5, vnoise(p), w);
-}
-vec3 cosDir(vec3 n){
-  float u1 = rnd(), u2 = rnd();
-  float r = sqrt(u1), ph = 6.2831853*u2;
-  vec3 t = normalize(abs(n.y) < 0.99 ? cross(n, vec3(0.0,1.0,0.0)) : cross(n, vec3(1.0,0.0,0.0)));
-  vec3 b = cross(n, t);
-  return normalize(t*r*cos(ph) + b*r*sin(ph) + n*sqrt(1.0 - u1));
-}
-
-/* ------------------------------ world access ------------------------------ */
-uvec4 cellAt(ivec2 c){ return texelFetch(uWorld, c & ivec2(63), 0); }
-
-int pcount(int t){ return t==1 ? 1 : t==2 ? 3 : t==3 ? 3 : t==4 ? 1 : t==5 ? 4 : 0; }
-vec4 piece(int t, int p, int k){
-  if (t == 1) return vec4(0.0, S, 0.0, H);
-  if (t == 2){
-    float c = 0.80 + float(p)*0.28;
-    if (k == 0) return vec4(0.0, c-DW, 0.0, H);
-    if (k == 1) return vec4(c+DW, S, 0.0, H);
-    return vec4(c-DW, c+DW, DH, H);
-  }
-  if (t == 3){
-    if (k == 0) return vec4(0.0, 0.32, 0.0, H);
-    if (k == 1) return vec4(S-0.32, S, 0.0, H);
-    return vec4(0.32, S-0.32, 2.25, H);
-  }
-  if (t == 4) return vec4(0.0, S, 0.0, HALFH);
-  if (k == 0) return vec4(0.0, S, 0.0, 0.95);
-  if (k == 1) return vec4(0.0, S, 2.05, H);
-  if (k == 2) return vec4(0.0, 0.55, 0.95, 2.05);
-  return vec4(S-0.55, S, 0.95, 2.05);
-}
-
-/* ------------------------------ ray traversal ------------------------------ */
-vec3 g_ro, g_inv, g_s, g_bn;
-float g_bt;
-int g_kind, g_band, g_type, g_pos;
-ivec2 g_cell;
-
-bool hitBox(vec3 bmin, vec3 bmax){
-  vec3 t0 = (bmin - g_ro)*g_inv, t1 = (bmax - g_ro)*g_inv;
-  vec3 tn = min(t0, t1), tf = max(t0, t1);
-  float tN = max(max(tn.x, tn.y), tn.z), tF = min(min(tf.x, tf.y), tf.z);
-  if (tN > 0.0 && tN < tF && tN < g_bt){
-    g_bt = tN;
-    g_bn = -g_s * step(tn.yzx, tn.xyz) * step(tn.zxy, tn.xyz);
-    return true;
-  }
-  return false;
-}
-
-bool testCell(ivec2 c){
-  uvec4 d = cellAt(c);
-  uint A = d.x, B = d.y;
-  bool hit = false;
-  vec2 o = vec2(c)*S;
-  int wt = int(A & 7u);
-  if (wt != 0){
-    int wp = int((A >> 3) & 3u);
-    int cnt = pcount(wt);
-    for (int k = 0; k < 4; k++){
-      if (k >= cnt) break;
-      vec4 q = piece(wt, wp, k);
-      if (hitBox(vec3(o.x, q.z, o.y + q.x), vec3(o.x + T, q.w, o.y + q.y))){
-        hit = true; g_kind = 3; g_band = 0; g_type = wt; g_pos = wp; g_cell = c;
-      }
+/* ---- mineral fibre ceiling tile ---- */
+float tileH(vec2 uv, out float pit){
+  float h = 0.5; pit = 0.0;
+  vec2 q = uv * 48.0, id = floor(q), f = fract(q);
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    vec2 o = vec2(float(i), float(j));
+    vec2 cid = mod(id + o, 48.0);
+    if(h12(cid + 9.1) < 0.62){
+      vec2 c = o + h22(cid) * 0.7 + 0.15 - f;
+      float rad = 0.10 + 0.16 * h12(cid + 2.3);
+      float p = smoothstep(rad, rad * 0.3, length(c));
+      h -= p * 0.35; pit = max(pit, p);
     }
   }
-  int st = int((A >> 5) & 7u);
-  if (st != 0){
-    int sp = int((A >> 8) & 3u);
-    int cnt = pcount(st);
-    for (int k = 0; k < 4; k++){
-      if (k >= cnt) break;
-      vec4 q = piece(st, sp, k);
-      if (hitBox(vec3(o.x + q.x, q.z, o.y), vec3(o.x + q.y, q.w, o.y + T))){
-        hit = true; g_kind = 3; g_band = 1; g_type = st; g_pos = sp; g_cell = c;
-      }
-    }
-  }
-  int pcd = int((A >> 10) & 3u);
-  if (pcd != 0){
-    float ph = pcd == 2 ? H : HALFH;
-    if (hitBox(vec3(o.x, 0.0, o.y), vec3(o.x + T, ph, o.y + T))){
-      hit = true; g_kind = 4; g_band = 2; g_cell = c;
-    }
-  }
-  uint pw = (B >> 16) & 255u;
-  if (pw != 0u){
-    vec3 pmin = vec3(o.x + float(B & 255u)*0.01, 0.0, o.y + float((B >> 8) & 255u)*0.01);
-    vec3 pmax = pmin + vec3(float(pw)*0.01, H, float(B >> 24)*0.01);
-    if (hitBox(pmin, pmax)){ hit = true; g_kind = 5; g_band = 2; g_cell = c; }
-  }
-  return hit;
+  float fis = vn(uv * 24.0, 24.0) * 0.6 + vn(uv * 60.0, 60.0) * 0.4;
+  float rid = 1.0 - abs(fis - 0.5) * 2.0;
+  float fs = smoothstep(0.88, 0.96, rid);
+  h -= fs * 0.28; pit = max(pit, fs * 0.8);
+  h += (vn(uv * 180.0, 180.0) - 0.5) * 0.08;
+  float eb = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+  h -= (1.0 - smoothstep(0.0, 0.035, eb)) * 0.5;
+  return h;
 }
 
-/* returns 0 miss, 1 floor, 2 ceiling, 3 wall piece, 4 corner post, 5 pillar */
-int traceScene(vec3 ro, vec3 rd, float lim, int maxSteps, out float tt, out vec3 nn){
-  g_ro = ro;
-  g_s = vec3(rd.x < 0.0 ? -1.0 : 1.0, rd.y < 0.0 ? -1.0 : 1.0, rd.z < 0.0 ? -1.0 : 1.0);
-  vec3 ard = max(abs(rd), vec3(1e-5));
-  g_inv = 1.0/(ard*g_s);
-  float tf = 1e9; int fk = 0;
-  if (rd.y < -1e-5){ tf = -ro.y/rd.y; fk = 1; }
-  else if (rd.y > 1e-5){ tf = (H - ro.y)/rd.y; fk = 2; }
-  g_bt = min(tf, lim);
-  g_kind = 0;
-  ivec2 c = ivec2(floor(ro.xz/S));
-  ivec2 stp = ivec2(int(g_s.x), int(g_s.z));
-  vec2 tD = S*abs(g_inv.xz);
-  vec2 nb = (vec2(c) + vec2(rd.x > 0.0 ? 1.0 : 0.0, rd.z > 0.0 ? 1.0 : 0.0))*S;
-  vec2 tM = (nb - ro.xz)*g_inv.xz;
-  for (int i = 0; i < 64; i++){
-    if (i >= maxSteps) break;
-    if (testCell(c)) break;
-    if (min(tM.x, tM.y) > g_bt) break;
-    if (tM.x < tM.y){ c.x += stp.x; tM.x += tD.x; } else { c.y += stp.y; tM.y += tD.y; }
-  }
-  if (g_kind != 0){ tt = g_bt; nn = g_bn; return g_kind; }
-  if (tf <= lim){ tt = tf; nn = vec3(0.0, fk == 1 ? 1.0 : -1.0, 0.0); return fk; }
-  tt = lim; nn = vec3(0.0);
-  return 0;
-}
-
-bool occluded(vec3 ro, vec3 target){
-  vec3 d = target - ro;
-  float L = length(d);
-  float tt; vec3 nn;
-  return traceScene(ro, d/L, L - 0.02, 12, tt, nn) != 0;
-}
-
-/* ------------------------------ lights ------------------------------ */
-float flickerF(float ph){
-  float burst = step(0.78, fract(uTime*0.23 + ph*7.0));
-  float osc = step(0.5, fract(sin(floor(uTime*24.0) + ph*913.0)*43758.5453));
-  float f = mix(1.0, 0.15 + 0.85*osc, burst);
-  return mix(1.0, f, uFlick);
-}
-float lightBr(uint C){
-  if (((C >> 20) & 1u) == 0u) return 0.0;
-  uint st = C & 3u;
-  if (st == 0u) return 0.0;
-  if (st == 1u) return 1.0;
-  if (st == 3u) return 0.5;
-  return flickerF(float((C >> 4) & 0xffffu)/65535.0);
-}
-vec3 lightCenter(ivec2 c, uint C){
-  vec2 o = vec2(c)*S;
-  float side = float((C >> 3) & 1u);
-  vec2 loc = ((C >> 2) & 1u) == 0u ? vec2(1.2, 0.9 + 0.6*side) : vec2(0.9 + 0.6*side, 1.2);
-  return vec3(o.x + loc.x, H - 0.03, o.y + loc.y);
-}
-vec2 lightExt(uint C){ return ((C >> 2) & 1u) == 0u ? vec2(0.6, 0.3) : vec2(0.3, 0.6); }
-
-/* Area-light gather: analytic irradiance + jittered shadow ray to a random point on the panel. */
-vec3 gatherLight(vec3 p, vec3 n, vec3 ng, vec3 v, int nL, int nS, float ks, float shin, out vec3 spec, out float ambE){
-  spec = vec3(0.0); ambE = 0.0;
-  vec3 E = vec3(0.0);
-  ivec2 c0 = ivec2(floor(p.xz/S));
-  vec2 fr = p.xz/S - vec2(c0);
-  ivec2 sg = ivec2(fr.x < 0.5 ? -1 : 1, fr.y < 0.5 ? -1 : 1);
-  int used = 0;
-  vec3 so = p + ng*0.012;
-  for (int k = 0; k < 9; k++){
-    if (k >= nL) break;
-    ivec2 off = k==0 ? ivec2(0) : k==1 ? ivec2(sg.x,0) : k==2 ? ivec2(0,sg.y) : k==3 ? sg :
-                k==4 ? ivec2(-sg.x,0) : k==5 ? ivec2(0,-sg.y) : k==6 ? ivec2(-sg.x,sg.y) : k==7 ? ivec2(sg.x,-sg.y) : -sg;
-    ivec2 c = c0 + off;
-    uint C = cellAt(c).z;
-    float br = lightBr(C);
-    if (br <= 0.0) continue;
-    vec3 lp = lightCenter(c, C);
-    vec3 L = lp - p;
-    float d2 = dot(L, L), dist = sqrt(d2);
-    L /= dist;
-    ambE += br*LI/(d2 + 1.5);
-    float cosR = dot(n, L);
-    if (n.y < -0.9) cosR = 0.35;            // ceiling gets a soft wash from fixture housings
-    if (cosR <= 0.0) continue;
-    float cosE = max((lp.y - p.y)/dist, 0.0);
-    float e = br*LI*(cosE + 0.12)*cosR/(d2 + 0.25);
-    if (e < 0.03) continue;
-    float vis = 1.0;
-    if (used < nS){
-      used++;
-      vec2 ex = lightExt(C);
-      vec3 q = lp + vec3((rnd()*2.0 - 1.0)*ex.x*0.95, 0.0, (rnd()*2.0 - 1.0)*ex.y*0.95);
-      if (occluded(so, q)) vis = 0.0;
-    } else if (off.x != 0 || off.y != 0) vis = 0.3;
-    vec3 contrib = LCOL*e*vis;
-    E += contrib;
-    if (ks > 0.0){
-      vec3 hv = normalize(L + v);
-      spec += contrib*pow(max(dot(n, hv), 0.0), shin)*ks;
-    }
-  }
-  return E;
-}
-
-vec3 flashE(vec3 p, vec3 n, vec3 ng){
-  vec3 fp = uCam + uR*0.16 - uU*0.14;
-  vec3 L = fp - p;
-  float d2 = dot(L, L), dist = sqrt(d2);
-  L /= dist;
-  float cosR = max(dot(n, L), 0.0);
-  float spot = smoothstep(0.82, 0.95, dot(-L, uF));
-  float e = 70.0*spot*cosR/(d2 + 0.6);
-  if (e < 0.02) return vec3(0.0);
-  if (occluded(p + ng*0.012, fp)) return vec3(0.0);
-  return vec3(1.0, 0.95, 0.82)*e;
-}
-
-/* ------------------------------ materials ------------------------------ */
-vec3 s_alb, s_n, s_emis;
-float s_ks, s_shin, s_emitK;
-
-vec3 carpetBase(int cs){
-  return cs == 0 ? vec3(0.30, 0.26, 0.105) : cs == 1 ? vec3(0.19, 0.165, 0.07) : cs == 2 ? vec3(0.36, 0.33, 0.15) : vec3(0.45, 0.41, 0.21);
-}
-vec3 wallBase(int h){
-  return h == 0 ? vec3(0.66, 0.60, 0.20) : h == 1 ? vec3(0.72, 0.65, 0.31) : h == 2 ? vec3(0.56, 0.56, 0.19) : vec3(0.70, 0.55, 0.21);
-}
-
-void surfFloor(vec3 p, float foot){
-  ivec2 c = ivec2(floor(p.xz/S));
-  uint D = cellAt(c).w;
-  int cs = int((D >> 2) & 3u);
-  int grime = int((D >> 8) & 3u);
-  vec3 base = carpetBase(cs);
-  vec2 q = p.xz;
-  float f1 = fnoise(q*140.0, foot*140.0);
-  float f2 = fnoise(q*45.0 + 3.1, foot*45.0);
-  float f3 = fnoise(q*9.0 + 9.7, foot*9.0);
-  float f4 = fnoise(q*0.8 + 21.3, foot*0.8);
-  vec3 alb = base*(0.78 + 0.30*f1 + 0.16*f2)*(0.88 + 0.22*f3);
-  float stain = smoothstep(0.60, 0.78, fnoise(q*0.45 + f4*0.5 + 5.0, foot*0.45));
-  alb = mix(alb, alb*vec3(0.55, 0.50, 0.40), stain*(0.30 + 0.12*float(grime)));
-  alb *= 0.9 + 0.2*f4;
-  if (cs == 2){
-    vec2 tq = q/0.5, ti = floor(tq), tf = fract(tq);
-    float edge = min(min(tf.x, 1.0 - tf.x), min(tf.y, 1.0 - tf.y))*0.5;
-    float seam = 1.0 - smoothstep(0.0, 0.004 + foot*0.8, edge);
-    alb *= 0.93 + 0.10*h2f(uvec2(ivec2(ti)));
-    alb *= 1.0 - 0.35*seam*(1.0 - smoothstep(0.002, 0.02, foot));
-  }
-  vec2 bq = (vec2(fnoise(q*60.0 + 11.0, foot*60.0), fnoise(q*60.0 + 37.0, foot*60.0)) - 0.5)*0.55;
-  s_alb = alb;
-  s_n = normalize(vec3(bq.x, 1.0, bq.y));
-  s_ks = 0.0;
-}
-
-void surfCeil(vec3 p, float foot){
-  ivec2 c = ivec2(floor(p.xz/S));
-  uvec4 d = cellAt(c);
-  uint D = d.w, C = d.z;
-  int cv = int((D >> 6) & 3u);
-  vec2 q = p.xz;
-  vec2 tq = q/0.6, tf = fract(tq), ti = floor(tq);
-  float edge = min(min(tf.x, 1.0 - tf.x), min(tf.y, 1.0 - tf.y))*0.6;
-  s_n = vec3(0.0, -1.0, 0.0); s_ks = 0.0; s_shin = 8.0; s_emis = vec3(0.0);
-  float tone = 1.0 + (cv == 1 ? -0.08 : cv == 2 ? 0.06 : cv == 3 ? -0.16 : 0.0);
-  float rr = h2f(uvec2(ivec2(ti)) + uvec2(7u, 13u));
-  float pores = fnoise(q*55.0, foot*55.0);
-  float pores2 = fnoise(q*17.0 + 5.0, foot*17.0);
-  float fissure = smoothstep(0.62, 0.72, fnoise(q*110.0 + 2.0, foot*110.0));
-  vec3 alb = vec3(0.62, 0.56, 0.28)*tone*(0.86 + 0.20*pores + 0.10*pores2)*(0.96 + 0.08*rr);
-  alb *= 1.0 - 0.35*fissure*(1.0 - clamp(foot*40.0, 0.0, 1.0));
-  float st = smoothstep(0.66, 0.80, fnoise(q*0.7 + rr*10.0, foot*0.7));
-  alb = mix(alb, alb*vec3(0.62, 0.50, 0.28), st*0.6);
-  float barHalf = 0.0125;
-  float bar = 1.0 - smoothstep(barHalf, barHalf + 0.004 + foot, edge);
-  float groove = smoothstep(barHalf + 0.002, barHalf + 0.02, edge);
-  alb *= mix(0.7, 1.0, groove);
-  vec3 barCol = vec3(0.66, 0.62, 0.45);
-  alb = mix(alb, barCol, bar);
-  /* ventilation grille */
-  if (((D >> 10) & 1u) == 1u){
-    int vt = int((D >> 11) & 3u);
-    vec2 ol = q - vec2(c)*S;
-    vec2 vc = vec2(2.1, 0.3 + 0.6*float(vt));
-    vec2 vd = abs(ol - vc);
-    if (vd.x < 0.27 && vd.y < 0.27){
-      float sl = abs(fract((ol.y - vc.y)/0.04) - 0.5)*2.0;
-      alb = mix(vec3(0.04, 0.035, 0.02), vec3(0.55, 0.50, 0.35), smoothstep(0.3, 0.7, sl));
-      if (vd.x > 0.245 || vd.y > 0.245) alb = barCol;
-    }
-  }
-  /* fluorescent troffer */
-  if (((C >> 20) & 1u) == 1u){
-    vec3 lc = lightCenter(c, C);
-    vec2 ex = lightExt(C), lp = q - lc.xz;
-    if (abs(lp.x) < ex.x && abs(lp.y) < ex.y){
-      bool o0 = ((C >> 2) & 1u) == 0u;
-      float lng = o0 ? lp.x : lp.y, sht = o0 ? lp.y : lp.x;
-      float exl = o0 ? ex.x : ex.y, exs = o0 ? ex.y : ex.x;
-      float fr = min(exl - abs(lng), exs - abs(sht));
-      if (fr < 0.022){
-        alb = vec3(0.72, 0.70, 0.58);
-      } else {
-        float br = lightBr(C);
-        float tq2 = (abs(sht) - 0.1)/0.05;
-        float tube = exp(-tq2*tq2);
-        float pat = (0.78 + 0.38*tube)*(0.92 + 0.08*smoothstep(0.0, 0.3, exl - abs(lng)));
-        s_emis = LCOL*7.0*br*pat;
-        s_emitK = 1.0;
-        alb = vec3(0.70, 0.68, 0.55)*(0.9 + 0.1*pat);
-      }
-    }
-  }
-  s_alb = alb;
-}
-
-void surfWall(vec3 p, vec3 ng, float foot){
-  ivec2 fc = ivec2(floor((p.xz + ng.xz*0.05)/S));
-  uint D = cellAt(fc).w;
-  int ws = int(D & 3u), hue = int((D >> 4) & 3u), grime = int((D >> 8) & 3u);
-  bool crown = ((D >> 20) & 1u) == 1u;
-  uint xr = D >> 21;
-  vec3 base = wallBase(hue);
-  s_n = ng; s_ks = 0.035; s_shin = 14.0;
-  float y = p.y;
-  vec2 o = vec2(g_cell)*S;
-  if (ng.y > 0.5){ s_alb = vec3(0.50, 0.34, 0.14); s_ks = 0.12; return; }
-  if (ng.y < -0.5){ s_alb = TRIM*0.95; return; }
-  float uL = g_band == 0 ? p.z - o.y : (g_band == 1 ? p.x - o.x : 1.0);
-  if (g_band == 0 && abs(ng.z) > 0.5 && uL > 0.03 && uL < S - 0.03){ s_alb = TRIM*0.97; s_ks = 0.08; return; }
-  if (g_band == 1 && abs(ng.x) > 0.5 && uL > 0.03 && uL < S - 0.03){ s_alb = TRIM*0.97; s_ks = 0.08; return; }
-
-  vec3 tang = vec3(ng.z, 0.0, -ng.x);
-  float a = dot(p, tang);
-  float aaf = 1.0 - smoothstep(0.004, 0.02, foot);
-  vec3 alb = base;
-  float fib = fnoise(vec2(a*70.0, y*5.0), foot*70.0);
-  float fib2 = fnoise(vec2(a*20.0, y*1.5) + 4.0, foot*20.0);
-  float mott = fnoise(vec2(a*2.2, y*1.6) + 8.0, foot*2.2);
-  alb *= 0.88 + 0.12*fib + 0.07*fib2 + 0.10*(mott - 0.5);
-  float tilt = 0.0, vtilt = 0.0;
-
-  if (ws == 1){
-    float f = fract(a/0.15);
-    float stp = smoothstep(0.0, 0.06, f) - smoothstep(0.5, 0.56, f);
-    alb *= 1.0 - 0.13*stp*aaf;
-    tilt += (smoothstep(0.0, 0.06, f)*(1.0 - smoothstep(0.06, 0.12, f)) - smoothstep(0.5, 0.56, f)*(1.0 - smoothstep(0.56, 0.62, f)))*0.5*aaf;
-  } else if (ws == 2){
-    float qq = a/0.2;
-    float tri = abs(fract(qq) - 0.5)*2.0;
-    float f = fract(y*3.0 + tri*0.5);
-    float m = smoothstep(0.0, 0.1, f) - smoothstep(0.18, 0.28, f);
-    alb = mix(alb, alb*vec3(0.72, 0.72, 0.80) + 0.05, m*0.55*aaf);
-    float dots = smoothstep(0.35, 0.45, length(vec2(fract(a/0.2) - 0.5, fract(y*3.0 + 0.5) - 0.5)));
-    alb *= 1.0 - 0.06*(1.0 - dots)*aaf;
-  } else if (ws == 3){
-    float wh = 1.0;
-    if (y < wh){
-      float f = fract(a/0.09);
-      float g = smoothstep(0.0, 0.12, f)*(1.0 - smoothstep(0.88, 1.0, f));
-      alb = base*vec3(1.02, 0.98, 0.90)*(0.78 + 0.22*g)*(0.9 + 0.1*fib);
-      tilt += (f < 0.5 ? 1.0 : -1.0)*(1.0 - g)*0.5*aaf;
-    }
-    if (y >= wh && y < wh + 0.075){
-      alb = vec3(0.52, 0.34, 0.13)*(0.85 + 0.30*fnoise(vec2(a*6.0, y*80.0), foot*6.0));
-      vtilt = y > wh + 0.05 ? 0.9 : (y < wh + 0.02 ? -0.9 : 0.0);
-      s_ks = 0.14;
-    }
-  }
-  /* baseboard + crown molding */
-  if (y < 0.115){ alb = TRIM*(0.80 + 0.15*fib)*0.9; s_ks = 0.1; }
-  else if (y < 0.135){ vtilt = 0.9; alb = TRIM*0.9; s_ks = 0.1; }
-  if (crown){
-    if (y > H - 0.085){ alb = TRIM*0.95; s_ks = 0.08; }
-    else if (y > H - 0.105){ vtilt = -0.9; alb = TRIM*0.95; }
-  }
-  /* door / window casing */
-  if (g_band < 2 && (g_type == 2 || g_type == 3 || g_type == 5)){
-    float dd;
-    if (g_type == 2){ float c = 0.80 + float(g_pos)*0.28; dd = max(max(c - DW - uL, uL - c - DW), y - DH); }
-    else if (g_type == 3){ dd = max(max(0.32 - uL, uL - (S - 0.32)), y - 2.25); }
-    else { dd = max(max(0.55 - uL, uL - (S - 0.55)), max(0.95 - y, y - 2.05)); }
-    if (dd < 0.078){ alb = mix(alb, TRIM*0.96, 1.0 - smoothstep(0.072, 0.078, dd)); s_ks = 0.1; }
-    alb *= 1.0 - 0.30*(1.0 - smoothstep(0.0, 0.007, abs(dd - 0.075)));
-  }
-  /* aging */
-  alb *= mix(0.72, 1.0, smoothstep(0.0, 0.9, y));
-  alb *= mix(0.85, 1.0, 1.0 - smoothstep(H - 0.5, H, y));
-  float streak = fnoise(vec2(a*3.0 + float(xr & 255u), y*0.35), foot*3.0);
-  float sm = smoothstep(0.68, 0.85, streak)*smoothstep(0.7, 2.6, y)*(0.4 + 0.2*float(grime));
-  alb = mix(alb, alb*vec3(0.62, 0.50, 0.28), sm);
-  float blotch = smoothstep(0.62, 0.80, fnoise(vec2(a, y)*1.3 + 31.0, foot*1.3));
-  alb *= 1.0 - 0.25*blotch*float(grime)/3.0;
-  float ds = (0.5 - abs(fract(a/0.53 + 0.31) - 0.5))*0.53;
-  alb *= 1.0 - 0.07*(1.0 - smoothstep(0.0, 0.004 + foot, ds))*(1.0 - smoothstep(0.002, 0.012, foot));
-  /* electrical outlets */
-  if (g_band < 2 && g_type == 1){
-    float cellA = floor(a/S);
-    uint wh = ihash(uvec2(uint(int(cellA) + 400), uint(g_cell.x*7 + g_cell.y*13 + g_band*3 + (ng.x + ng.z > 0.0 ? 5 : 0) + 1000)));
-    if ((wh & 7u) == 0u){
-      float oa = (cellA + 0.17 + 0.66*float((wh >> 4) & 255u)/255.0)*S;
-      vec2 od = vec2(a - oa, y - 0.34);
-      if (abs(od.x) < 0.035 && abs(od.y) < 0.058){
-        alb = vec3(0.72, 0.68, 0.52);
-        alb = mix(alb, vec3(0.05, 0.04, 0.02), 1.0 - smoothstep(0.008, 0.012, length(vec2(od.x*1.4, abs(od.y) - 0.024))));
-      }
-    }
-  }
-  s_alb = alb;
-  s_n = normalize(ng + tang*tilt*0.35 + vec3(0.0, 1.0, 0.0)*vtilt*0.6);
-}
-
-/* ------------------------------ one bounce of GI ------------------------------ */
-vec3 giBounce(vec3 p, vec3 ng, float ambE, out float occ){
-  vec3 d = cosDir(ng);
-  float t; vec3 n;
-  vec3 so = p + ng*0.006;
-  int k = traceScene(so, d, 14.0, 22, t, n);
-  if (k == 0){ occ = 1.0; return ambE*0.022*AMBT; }
-  vec3 q = so + d*t;
-  occ = mix(0.55, 1.0, smoothstep(0.05, 1.6, t));
-  vec3 alb;
-  if (k == 1){ uint D = cellAt(ivec2(floor(q.xz/S))).w; alb = carpetBase(int((D >> 2) & 3u))*0.85; }
-  else if (k == 2){ alb = vec3(0.52, 0.46, 0.22); }
-  else { uint D = cellAt(ivec2(floor((q.xz + n.xz*0.05)/S))).w; alb = wallBase(int((D >> 4) & 3u))*0.88; }
-  vec3 sp; float ae;
-  vec3 E = gatherLight(q + n*0.002, n, n, -d, 4, 1, 0.0, 1.0, sp, ae);
-  return alb*E/PI;
-}
-
-/* ------------------------------ main ------------------------------ */
 void main(){
-  rng = uint(gl_FragCoord.x)*1973u + uint(gl_FragCoord.y)*9277u + uint(uFrame)*26699u + 1u;
-  rnd(); rnd();
-  vec2 ndc = (gl_FragCoord.xy + uJit)/uRes*2.0 - 1.0;
-  vec3 rd = normalize(uF + uR*(ndc.x*uTan.x) + uU*(ndc.y*uTan.y));
-  vec3 ro = uCam;
-  float t; vec3 ng;
-  int kind = traceScene(ro, rd, 60.0, 60, t, ng);
-  vec3 fogC = vec3(0.36, 0.30, 0.11);
-  vec3 col = fogC;
-  float tw = uHistW;
+  vec2 uv = vUv;
+  float e = 1.0 / uSize;
+  if(uType == 0){
+    float r, fl, r2, fl2, r3, fl3;
+    float h  = carpetH(uv, r, fl);
+    float hx = carpetH(uv + vec2(e, 0.0), r2, fl2);
+    float hy = carpetH(uv + vec2(0.0, e), r3, fl3);
+    float mot = fbm(uv, 6.0, 4);
+    float t = mix(0.52, 0.86, r) * (0.74 + 0.30 * h) * (0.90 + 0.20 * mot);
+    if(fl > 0.93) t *= 0.62; else if(fl < 0.04) t *= 1.15;
+    vec3 tint = vec3(1.0, 0.97, 0.91);
+    o0 = vec4(clamp(t * tint, 0.0, 1.0), 0.9);
+    o1 = pack(h, hx, hy, 1.6, 0.55 + 0.45 * h);
+  } else if(uType == 1){
+    float t0, t1, t2;
+    float h  = wallH(uv, t0);
+    float hx = wallH(uv + vec2(e, 0.0), t1);
+    float hy = wallH(uv + vec2(0.0, e), t2);
+    o0 = vec4(clamp(vec3(t0 * 0.84, t0 * 0.84, t0 * 0.84), 0.0, 1.0), 0.5);
+    o1 = pack(h, hx, hy, 2.2, 1.0);
+  } else if(uType == 2){
+    float p0, p1, p2;
+    float h  = tileH(uv, p0);
+    float hx = tileH(uv + vec2(e, 0.0), p1);
+    float hy = tileH(uv + vec2(0.0, e), p2);
+    float t = 0.90 + (h - 0.5) * 0.35 - p0 * 0.07;
+    o0 = vec4(vec3(clamp(t * 0.90, 0.0, 1.0)), 0.8);
+    o1 = pack(h, hx, hy, 1.3, 0.8 + 0.2 * clamp(h, 0.0, 1.0));
+  } else {
+    float a = fbm(uv, 3.0, 5), b = fbm(uv + 0.31, 5.0, 4), c = fbm(uv + 0.67, 9.0, 4), d = fbm(uv + 0.13, 16.0, 3);
+    o0 = vec4(clamp((vec4(a, b, c, d) - 0.5) * 1.7 + 0.5, 0.0, 1.0));
+    o1 = vec4(0.5, 0.5, 0.5, 1.0);
+  }
+}`;
 
-  if (kind != 0){
-    vec3 P = ro + rd*t;
-    float foot = t*uPixAng/max(abs(dot(ng, rd)), 0.1);
-    s_emis = vec3(0.0); s_emitK = 0.0; s_ks = 0.0; s_shin = 10.0;
-    if (kind == 1) surfFloor(P, foot);
-    else if (kind == 2) surfCeil(P, foot);
-    else surfWall(P, ng, foot);
+/* ---------- light field: every lamp is ray-cast against the world ----------
+   For each cell of a 256x256 window we shoot rays (3 per lamp, so the lamp has
+   an area) to the nine nearest lamps and store how much of each is visible.
+   The scene shader then lights every pixel analytically with that visibility,
+   so shadows and light always come from the same source and never disagree.  */
+const FS_GI = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+${GLSL_WORLD}
+uniform ivec2 uOrg;
+layout(location=0) out vec4 oV0;
+layout(location=1) out vec4 oV1;
+layout(location=2) out vec4 oV2;
+layout(location=3) out vec4 oSrc;
 
-    vec3 spec; float ambE;
-    vec3 E = gatherLight(P, s_n, ng, -rd, 9, uShadowN, s_ks, s_shin, spec, ambE);
-    if (uFlash > 0.5) E += flashE(P, s_n, ng);
+float shadowRay(vec3 a, vec3 b){
+  vec3 d = b - a;
+  vec2 dd = d.xy;
+  if(dot(dd, dd) < 1e-6) return 1.0;
+  ivec2 c = ivec2(floor(a.xy / CS)), ce = ivec2(floor(b.xy / CS));
+  ivec2 st = ivec2(dd.x >= 0.0 ? 1 : -1, dd.y >= 0.0 ? 1 : -1);
+  vec2 inv = 1.0 / vec2(abs(dd.x) > 1e-6 ? dd.x : (dd.x >= 0.0 ? 1e-6 : -1e-6),
+                        abs(dd.y) > 1e-6 ? dd.y : (dd.y >= 0.0 ? 1e-6 : -1e-6));
+  vec2 tD = abs(CS * inv);
+  vec2 tM = (vec2(c + max(st, ivec2(0))) * CS - a.xy) * inv;
+  for(int i = 0; i < 44; i++){
+    if(c == ce) break;
+    float t;
+    if(tM.x < tM.y){ t = tM.x; c.x += st.x; tM.x += tD.x; }
+    else           { t = tM.y; c.y += st.y; tM.y += tD.y; }
+    if(t >= 1.0) break;
+    if(ceilH(c) <= a.z + d.z * t) return 0.0;
+  }
+  return 1.0;
+}
 
-    vec3 Li = vec3(0.0);
-    float occ = 1.0;
-    if (uGI > 0){
-      float oc;
-      for (int g = 0; g < 2; g++){
-        if (g >= uGI) break;
-        Li += giBounce(P, ng, ambE, oc);
-        occ += oc - 1.0;
-      }
-      Li /= float(uGI);
-      occ = 1.0 + (occ - 1.0)/float(uGI);
-    } else {
-      Li = ambE*0.022*AMBT;
+void main(){
+  ivec2 fc = ivec2(gl_FragCoord.xy);
+  ivec2 cell = uOrg + ((fc - uOrg) & 255);
+  vec2 pos = (vec2(cell) + 0.5) * CS;
+  if(ceilH(cell) < 0.5){
+    /* wall texels borrow an open neighbour so bilinear filtering never darkens the floor next to a wall */
+    bool found = false;
+    for(int k = 0; k < 4; k++){
+      ivec2 n = cell + ivec2(k == 0 ? 1 : (k == 1 ? -1 : 0), k == 2 ? 1 : (k == 3 ? -1 : 0));
+      if(ceilH(n) >= 0.5){ cell = n; pos = (vec2(n) + 0.5) * CS; found = true; break; }
     }
-    col = s_alb*(E/PI + Li*1.25*occ) + spec + s_emis + s_alb*0.008;
-    float fg = 1.0 - exp(-t*0.012);
-    col = mix(col, fogC, fg);
-    if (s_emitK > 0.5) tw *= 0.35;
+    if(!found){ oV0 = vec4(0.0); oV1 = vec4(0.0); oV2 = vec4(0.0, 0.0, 0.0, 1.0); oSrc = vec4(0.0); return; }
+  }
+  vec3 a = vec3(pos, 0.3);
+  ivec2 b = ivec2(floor((pos - vec2(1.25, 1.75)) / 3.0 + 0.5));
+  float vis[9];
+  for(int i = 0; i < 9; i++) vis[i] = 0.0;
+  vec3 E = vec3(0.0);
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    ivec2 li = b + ivec2(i, j);
+    ivec2 lc = ivec2(6 * li.x + 2, 6 * li.y + 3);
+    vec4 wd = Wd(lc);
+    int st = int(wd.b * 255.0 + 0.5);
+    int mode = st & 7;
+    if(mode == 0 || mode == 4) continue;
+    vec3 lp = vec3((float(lc.x) + 0.5) * CS, (float(lc.y) + 0.5) * CS, wd.r * 12.75 - 0.02);
+    vec2 dh = lp.xy - pos;
+    if(dot(dh, dh) > 26.0) continue;
+    float v = (shadowRay(a, lp) + shadowRay(a, lp + vec3(0.42, 0.0, 0.0)) + shadowRay(a, lp - vec3(0.42, 0.0, 0.0))) * (1.0 / 3.0);
+    int ch = pm3(li.x) + 3 * pm3(li.y);
+    vis[ch] = v;
+    vec3 L = lp - vec3(pos, 0.0);
+    float d2 = dot(L, L), d = sqrt(d2), nl = L.z / d;
+    float w = clamp(1.0 - pow(d / 5.6, 4.0), 0.0, 1.0); w *= w;
+    E += LCOL * lightPower(st) * nl * nl * w / (d2 + 0.5) * v;
+  }
+  oV0 = vec4(vis[0], vis[1], vis[2], vis[3]);
+  oV1 = vec4(vis[4], vis[5], vis[6], vis[7]);
+  oV2 = vec4(vis[8], 0.0, 0.0, 1.0);
+  oSrc = vec4(E * vec3(0.50, 0.42, 0.20), 1.0);
+}`;
 
-    /* temporal reprojection / accumulation */
-    vec3 v = P - uPrevCam;
-    float z = dot(v, uPF);
-    if (z > 0.05 && tw > 0.0){
-      vec2 pu = vec2(dot(v, uPR)/(z*uPrevTan.x), dot(v, uPU)/(z*uPrevTan.y))*0.5 + 0.5;
-      if (pu.x > 0.002 && pu.y > 0.002 && pu.x < 0.998 && pu.y < 0.998){
-        vec4 hs = textureLod(uHist, pu, 0.0);
-        float dp = length(v);
-        if (abs(hs.a - dp) < 0.05*dp + 0.04 && !any(isnan(hs.rgb))) col = mix(col, hs.rgb, tw);
+/* ---------- bounce light: relaxation over open cells (cheap multi-bounce) ----------
+   Light that hit the floor is reflected, tinted by the paper and carpet, and
+   spreads through doorways and halls; dark rooms next to lit ones glow softly. */
+const FS_RELAX = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+${GLSL_WORLD}
+uniform sampler2D uAmbPrev, uSrc;
+uniform ivec2 uOrg;
+uniform float uDecay, uSigma;
+out vec4 o;
+void main(){
+  ivec2 fc = ivec2(gl_FragCoord.xy);
+  ivec2 cell = uOrg + ((fc - uOrg) & 255);
+  if(ceilH(cell) < 0.5){ o = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  vec3 sum = vec3(0.0); float ws = 0.0;
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    if(i == 0 && j == 0) continue;
+    ivec2 n = cell + ivec2(i, j);
+    if(ceilH(n) < 0.5) continue;
+    float w = (i == 0 || j == 0) ? 1.0 : 0.7071;
+    sum += texelFetch(uAmbPrev, n & 255, 0).rgb * w; ws += w;
+  }
+  vec3 self = texelFetch(uAmbPrev, fc, 0).rgb;
+  vec3 avg = ws > 0.0 ? sum / ws : self;
+  vec3 src = texelFetch(uSrc, fc, 0).rgb;
+  o = vec4(mix(self, avg, 0.9) * (1.0 - uDecay) + src * uSigma, 1.0);
+}`;
+
+/* ---------- the scene: one ray per pixel through the cell grid ---------- */
+const FS_SCENE = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+${GLSL_WORLD}
+out vec4 fragColor;
+uniform sampler2D uVis0, uVis1, uVis2, uAmb;
+uniform sampler2D uCarpA, uCarpN, uWallA, uWallN, uCeilA, uCeilN, uNoise;
+uniform vec3 uPos, uFwd, uRight, uUp, uFPos, uFDir;
+uniform vec2 uTan, uRes, uJit;
+uniform float uExposure, uView, uGI, uFlash;
+
+const float PI = 3.14159265;
+const vec3 PAINT = vec3(0.82, 0.77, 0.62);
+const float CASE_W = 0.075;
+
+vec3 rayDir(vec2 px){
+  vec2 nd = px / uRes * 2.0 - 1.0;
+  return normalize(uFwd + nd.x * uTan.x * uRight + nd.y * uTan.y * uUp);
+}
+
+/* ------------------------------------------------------------------ */
+/*  ray cast: 2D grid walk, every cell has its own ceiling height      */
+/* ------------------------------------------------------------------ */
+struct Hit { float t; int kind; vec3 n; ivec2 A; ivec2 B; float hA; float hB; };
+
+Hit castRay(vec3 ro, vec3 rd, float maxT){
+  Hit h; h.kind = 0; h.t = maxT; h.n = vec3(0.0, 0.0, 1.0); h.A = ivec2(0); h.B = ivec2(0); h.hA = 0.0; h.hB = 0.0;
+  ivec2 c = ivec2(floor(ro.xy / CS));
+  ivec2 st = ivec2(rd.x >= 0.0 ? 1 : -1, rd.y >= 0.0 ? 1 : -1);
+  vec2 inv = 1.0 / vec2(abs(rd.x) > 1e-6 ? rd.x : (rd.x >= 0.0 ? 1e-6 : -1e-6),
+                        abs(rd.y) > 1e-6 ? rd.y : (rd.y >= 0.0 ? 1e-6 : -1e-6));
+  vec2 tD = abs(CS * inv);
+  vec2 tM = (vec2(c + max(st, ivec2(0))) * CS - ro.xy) * inv;
+  float hc = ceilH(c);
+  bool inside = hc < ro.z + 0.002;            // noclip: start inside stone, skip until open air
+  for(int i = 0; i < 280; i++){
+    float tx = min(tM.x, tM.y);
+    if(!inside){
+      if(rd.z < -1e-5){ float tf = -ro.z / rd.z; if(tf < tx){ h.t = tf; h.kind = 1; h.A = c; h.hA = hc; h.n = vec3(0.0, 0.0, 1.0); return h; } }
+      else if(rd.z > 1e-5){ float tc = (hc - ro.z) / rd.z; if(tc < tx){ h.t = tc; h.kind = 2; h.A = c; h.hA = hc; h.n = vec3(0.0, 0.0, -1.0); return h; } }
+    }
+    if(tx > maxT) break;
+    ivec2 pc = c; int ax;
+    if(tM.x < tM.y){ c.x += st.x; tM.x += tD.x; ax = 0; } else { c.y += st.y; tM.y += tD.y; ax = 1; }
+    float hn = ceilH(c);
+    float z = ro.z + rd.z * tx;
+    if(inside){ if(hn > z && z > 0.0){ inside = false; hc = hn; } }
+    else {
+      if(z >= hn){
+        h.t = tx; h.kind = 3; h.A = pc; h.B = c; h.hA = hc; h.hB = hn;
+        h.n = ax == 0 ? vec3(-float(st.x), 0.0, 0.0) : vec3(0.0, -float(st.y), 0.0);
+        return h;
+      }
+      hc = hn;
+    }
+  }
+  return h;
+}
+
+/* pixel footprint on a plane, for exact texture filtering */
+vec3 planeP(vec3 d, vec3 n, vec3 p0){
+  float den = dot(d, n);
+  den = abs(den) < 1e-4 ? (den >= 0.0 ? 1e-4 : -1e-4) : den;
+  float t = dot(p0 - uPos, n) / den;
+  return uPos + d * clamp(t, 0.0, 500.0);
+}
+
+/* ------------------------------------------------------------------ */
+/*  slow regional drift: palette changes blend, they never switch      */
+/* ------------------------------------------------------------------ */
+struct Zone { vec3 wall; vec3 carp; float dirt; float wet; vec3 lamp; };
+Zone zoneAt(vec2 p){
+  vec4 n = textureLod(uNoise, p * 0.0031, 0.0);
+  float zA = smoothstep(0.34, 0.66, n.r);
+  float zB = smoothstep(0.36, 0.64, textureLod(uNoise, p * 0.0047 + vec2(0.37, 0.11), 0.0).g);
+  Zone z;
+  vec3 wA = pow(vec3(202.0, 178.0, 84.0) / 255.0, vec3(2.2));
+  vec3 wB = pow(vec3(214.0, 198.0, 126.0) / 255.0, vec3(2.2));
+  vec3 wC = pow(vec3(190.0, 160.0, 68.0) / 255.0, vec3(2.2));
+  z.wall = mix(mix(wA, wB, zA), wC, zB * 0.65);
+  vec3 cA = pow(vec3(150.0, 130.0, 78.0) / 255.0, vec3(2.2));
+  vec3 cB = pow(vec3(140.0, 126.0, 92.0) / 255.0, vec3(2.2));
+  vec3 cC = pow(vec3(126.0, 104.0, 56.0) / 255.0, vec3(2.2));
+  z.carp = mix(mix(cA, cB, zA), cC, zB * 0.6);
+  z.dirt = mix(0.25, 0.75, n.b);
+  z.wet = smoothstep(0.35, 0.7, n.g);
+  z.lamp = mix(LCOL, vec3(0.93, 1.0, 0.86), zB * 0.5);
+  return z;
+}
+
+/* ------------------------------------------------------------------ */
+/*  contact occlusion straight from the grid (matches the real walls)  */
+/* ------------------------------------------------------------------ */
+float occ(ivec2 c, float zref){ return ceilH(c) < zref ? 1.0 : 0.0; }
+float cellAO(ivec2 c, vec2 pm, float zref, float str, out float edge){
+  vec2 f = pm / CS - vec2(c);
+  float dW = f.x * CS, dE = (1.0 - f.x) * CS, dS = f.y * CS, dN = (1.0 - f.y) * CS;
+  float oW = occ(c + ivec2(-1, 0), zref), oE = occ(c + ivec2(1, 0), zref);
+  float oS = occ(c + ivec2(0, -1), zref), oN = occ(c + ivec2(0, 1), zref);
+  const float R = 0.55;
+  float ao = 1.0;
+  ao *= 1.0 - str * oW * (1.0 - smoothstep(0.0, R, dW));
+  ao *= 1.0 - str * oE * (1.0 - smoothstep(0.0, R, dE));
+  ao *= 1.0 - str * oS * (1.0 - smoothstep(0.0, R, dS));
+  ao *= 1.0 - str * oN * (1.0 - smoothstep(0.0, R, dN));
+  float cSW = occ(c + ivec2(-1, -1), zref) * (1.0 - oW) * (1.0 - oS);
+  float cSE = occ(c + ivec2( 1, -1), zref) * (1.0 - oE) * (1.0 - oS);
+  float cNW = occ(c + ivec2(-1,  1), zref) * (1.0 - oW) * (1.0 - oN);
+  float cNE = occ(c + ivec2( 1,  1), zref) * (1.0 - oE) * (1.0 - oN);
+  ao *= 1.0 - str * cSW * (1.0 - smoothstep(0.0, R, length(vec2(dW, dS))));
+  ao *= 1.0 - str * cSE * (1.0 - smoothstep(0.0, R, length(vec2(dE, dS))));
+  ao *= 1.0 - str * cNW * (1.0 - smoothstep(0.0, R, length(vec2(dW, dN))));
+  ao *= 1.0 - str * cNE * (1.0 - smoothstep(0.0, R, length(vec2(dE, dN))));
+  edge = 1.0;
+  edge = mix(edge, dW, oW) ; edge = min(edge, mix(1.0, dE, oE));
+  edge = min(edge, mix(1.0, dS, oS)); edge = min(edge, mix(1.0, dN, oN));
+  return ao;
+}
+
+/* ------------------------------------------------------------------ */
+/*  trim relief: skirting, crown and cased openings                    */
+/* ------------------------------------------------------------------ */
+float baseP(float z){
+  if(z >= 0.14) return 0.0;
+  float p = 0.012 * smoothstep(0.0, 0.004, z);
+  p += 0.005 * smoothstep(0.085, 0.103, z) * (1.0 - smoothstep(0.103, 0.118, z));
+  p *= 1.0 - smoothstep(0.11, 0.14, z);
+  return p;
+}
+float crownP(float d){
+  if(d >= 0.09) return 0.0;
+  float x = 1.0 - d / 0.09;
+  return 0.036 * x * x * (3.0 - 2.0 * x) + 0.006 * smoothstep(0.2, 0.3, x) * (1.0 - smoothstep(0.3, 0.45, x));
+}
+float relief(float z, float dTop, float sc, float hB, float hBl, float hBr, out float zn){
+  zn = 0.0; float P = 0.0;
+  if(hB < 0.05 && z < 0.14){ P = baseP(z); zn = 1.0; }
+  if(dTop < 0.09){ P = max(P, crownP(dTop)); zn = 1.0; }
+  float cd = -1.0;
+  if(hB < 0.05){
+    if(hBr > 0.5){ float dR = CS - sc; if(dR < CASE_W && z < hBr + CASE_W){ float dd = CASE_W - dR; if(z > hBr) dd = min(dd, CASE_W - (z - hBr)); cd = max(cd, dd); } }
+    if(hBl > 0.5){ float dL = sc;      if(dL < CASE_W && z < hBl + CASE_W){ float dd = CASE_W - dL; if(z > hBl) dd = min(dd, CASE_W - (z - hBl)); cd = max(cd, dd); } }
+  } else {
+    float dh = z - hB;
+    if(dh < CASE_W) cd = max(cd, CASE_W - dh);
+  }
+  if(cd > 0.0){
+    P = max(P, 0.013 * smoothstep(0.0, 0.007, cd) + 0.004 * smoothstep(CASE_W * 0.55, CASE_W * 0.9, cd));
+    zn = 1.0;
+  }
+  return P;
+}
+
+/* ------------------------------------------------------------------ */
+/*  lighting                                                           */
+/* ------------------------------------------------------------------ */
+void directLight(vec3 p, vec3 N, vec3 V, float shin, vec2 vp, float useVis, bool ceilF, vec3 tint, out vec3 diff, out vec3 spec){
+  diff = vec3(0.0); spec = vec3(0.0);
+  vec2 vuv = vp / (CS * 256.0);
+  vec4 v0 = texture(uVis0, vuv), v1 = texture(uVis1, vuv), v2 = texture(uVis2, vuv);
+  float vis[9] = float[9](v0.r, v0.g, v0.b, v0.a, v1.r, v1.g, v1.b, v1.a, v2.r);
+  ivec2 b = ivec2(floor((vp - vec2(1.25, 1.75)) / 3.0 + 0.5));
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    ivec2 li = b + ivec2(i, j);
+    ivec2 lc = ivec2(6 * li.x + 2, 6 * li.y + 3);
+    vec4 wd = Wd(lc);
+    int st = int(wd.b * 255.0 + 0.5);
+    int mode = st & 7;
+    if(mode == 0 || mode == 4) continue;
+    vec3 lp = vec3((float(lc.x) + 0.5) * CS, (float(lc.y) + 0.5) * CS, wd.r * 12.75 - 0.02);
+    vec3 L = lp - p;
+    float d2 = dot(L, L), d = sqrt(d2);
+    float w = clamp(1.0 - pow(d / 5.6, 4.0), 0.0, 1.0); w *= w;
+    if(w <= 0.0) continue;
+    float P = lightPower(st);
+    if(ceilF){ diff += tint * P * w * 0.055 / (1.0 + dot(L.xy, L.xy) * 1.6); continue; }
+    vec3 l = L / d;
+    float cosL = max((lp.z - p.z) / d, 0.0);
+    int ch = pm3(li.x) + 3 * pm3(li.y);
+    float vv = mix(1.0, vis[ch], useVis);
+    float ndl = max(dot(N, l), 0.0);
+    float E = P * w * cosL * vv / (d2 + 0.5);
+    diff += tint * E * ndl;
+    vec3 Hh = normalize(l + V);
+    float nh = max(dot(N, Hh), 0.0);
+    float fr = 0.04 + 0.96 * pow(1.0 - max(dot(Hh, V), 0.0), 5.0);
+    spec += tint * E * ndl * fr * (shin + 2.0) * 0.0398 * pow(nh, shin);
+  }
+}
+
+void flashLight(vec3 p, vec3 N, vec3 V, float shin, out vec3 diff, out vec3 spec){
+  diff = vec3(0.0); spec = vec3(0.0);
+  if(uFlash <= 0.001) return;
+  vec3 L = uFPos - p;
+  float d2 = dot(L, L), d = sqrt(d2);
+  vec3 l = L / d;
+  float cosA = dot(-l, uFDir);
+  float sp = smoothstep(0.895, 0.975, cosA);
+  float att = clamp(1.0 - d / 30.0, 0.0, 1.0) / (d2 + 0.4);
+  float ndl = max(dot(N, l), 0.0);
+  float E = uFlash * 30.0 * sp * att * ndl;
+  vec3 tint = vec3(1.0, 0.96, 0.86);
+  diff = tint * E;
+  vec3 Hh = normalize(l + V);
+  float fr = 0.04 + 0.96 * pow(1.0 - max(dot(Hh, V), 0.0), 5.0);
+  spec = tint * E * fr * (shin + 2.0) * 0.0398 * pow(max(dot(N, Hh), 0.0), shin);
+}
+
+/* ------------------------------------------------------------------ */
+void main(){
+  vec2 px = gl_FragCoord.xy;
+  vec3 rd = rayDir(px + uJit);
+  vec3 rd0 = rayDir(px), rdx = rayDir(px + vec2(1.0, 0.0)), rdy = rayDir(px + vec2(0.0, 1.0));
+  Hit h = castRay(uPos, rd, uView);
+
+  const vec3 FOGC = vec3(0.118, 0.100, 0.050);
+  vec3 col = FOGC;
+  float dist = uView;
+
+  if(h.kind != 0){
+    dist = h.t;
+    vec3 p = uPos + rd * h.t;
+    vec3 n = h.n;
+    vec3 g1 = planeP(rdx, n, p) - planeP(rd0, n, p);
+    vec3 g2 = planeP(rdy, n, p) - planeP(rd0, n, p);
+    vec3 V = -rd;
+    Zone z = zoneAt(p.xy);
+
+    vec3 N = n, alb = vec3(0.5), emis = vec3(0.0);
+    float shin = 20.0, specK = 0.2, ao = 1.0, useVis = 1.0, edge = 1.0;
+    vec2 vp = p.xy;
+    bool ceilF = false;
+
+    if(h.kind == 1){
+      /* ---------------- carpet ---------------- */
+      ao = cellAO(h.A, p.xy, 1.1, 0.60, edge);
+      vec4 ta = textureGrad(uCarpA, p.xy, g1.xy, g2.xy);
+      vec4 tn = textureGrad(uCarpN, p.xy, g1.xy, g2.xy);
+      N = normalize(vec3((tn.xy * 2.0 - 1.0) * 1.15, 1.0));
+      alb = z.carp * ta.rgb * 1.5;
+      vec4 nm = textureGrad(uNoise, p.xy * 0.21, g1.xy * 0.21, g2.xy * 0.21);
+      vec4 nl = textureLod(uNoise, p.xy * 0.043, 0.0);
+      float stain = smoothstep(0.50, 0.80, nl.g * 0.55 + nl.r * 0.45);
+      float wet = smoothstep(0.55, 0.82, textureLod(uNoise, p.xy * 0.017 + vec2(7.3, 2.9), 0.0).b) * z.wet;
+      alb *= (0.95 + 0.10 * nm.b) * (1.0 - 0.11 * stain * z.dirt) * (1.0 - 0.10 * wet);
+      alb *= 1.0 - 0.10 * z.dirt * (1.0 - smoothstep(0.0, 0.20, edge));
+      shin = mix(6.0, 48.0, wet); specK = mix(0.35, 1.0, wet);
+      ao *= tn.a;
+    }
+    else if(h.kind == 2){
+      /* ---------------- ceiling ---------------- */
+      vp = p.xy; useVis = 0.0; ceilF = true; shin = 30.0;
+      int clsA = int(Wd(h.A).g * 255.0 + 0.5);
+      ao = cellAO(h.A, p.xy, h.hA - 0.05, 0.45, edge);
+      N = vec3(0.0, 0.0, -1.0);
+      if(clsA == 1){
+        alb = PAINT * 0.95;
+      } else {
+        ivec2 lb = ivec2(floor((p.xy - vec2(1.25, 1.75)) / 3.0 + 0.5));
+        ivec2 lc = ivec2(6 * lb.x + 2, 6 * lb.y + 3);
+        vec4 wd = Wd(lc);
+        int st = int(wd.b * 255.0 + 0.5);
+        int mode = st & 7;
+        vec2 dl = p.xy - vec2(3.0 * float(lb.x) + 1.25, 3.0 * float(lb.y) + 1.75);
+        bool panel = (mode != 0) && abs(wd.r * 12.75 - h.hA) < 0.02 && abs(dl.x) < 0.6 && abs(dl.y) < 0.3;
+        vec2 pl = dl / vec2(0.6, 0.3);
+        bool inner = abs(pl.x) < 0.94 && abs(pl.y) < 0.84;
+        if(panel && inner){
+          if(mode == 4){ alb = vec3(0.50); shin = 60.0; }
+          else {
+            float Pw = lightPower(st) / LI;
+            float tube = exp(-pow((abs(pl.y) - 0.42) / 0.24, 2.0));
+            float rip = 0.965 + 0.035 * sin(dl.x * 420.0);
+            float fade = smoothstep(1.0, 0.80, max(abs(pl.x), abs(pl.y) * 1.1));
+            emis = z.lamp * Pw * 24.0 * (0.74 + 0.26 * tube) * rip * (0.6 + 0.4 * fade);
+            alb = vec3(0.0);
+          }
+        } else if(panel){
+          alb = vec3(0.66);
+        } else {
+          vec2 tc = (p.xy - vec2(0.65, 1.45)) / 0.6;
+          vec2 id = floor(tc), f = fract(tc);
+          float hv = hash11(id.x * 17.3 + id.y * 91.7 + 3.1);
+          int vr = int(hv * 8.0) & 7;
+          float db = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)) * 0.6;
+          float bar = 1.0 - smoothstep(0.0105, 0.0135, db);
+          vec2 q = f, ga = g1.xy / 0.6, gb = g2.xy / 0.6;
+          bool sw = (vr & 4) != 0, fx = (vr & 1) != 0, fy = (vr & 2) != 0;
+          if(sw){ q = q.yx; ga = ga.yx; gb = gb.yx; }
+          if(fx){ q.x = 1.0 - q.x; ga.x = -ga.x; gb.x = -gb.x; }
+          if(fy){ q.y = 1.0 - q.y; ga.y = -ga.y; gb.y = -gb.y; }
+          vec4 ta = textureGrad(uCeilA, q, ga, gb);
+          vec4 tn = textureGrad(uCeilN, q, ga, gb);
+          vec2 sl = tn.xy * 2.0 - 1.0;
+          if(fx) sl.x = -sl.x;
+          if(fy) sl.y = -sl.y;
+          if(sw) sl = sl.yx;
+          vec3 Nt = normalize(vec3(sl * 0.9, -1.0));
+          N = normalize(mix(Nt, vec3(0.0, 0.0, -1.0), bar));
+          alb = mix(vec3(0.80, 0.78, 0.68) * ta.r * 1.15 * (0.975 + 0.05 * hv), vec3(0.66, 0.66, 0.64), bar);
+          ao *= mix(0.80, 1.0, smoothstep(0.0135, 0.05, db)) * mix(tn.a, 1.0, bar);
+        }
       }
     }
+    else {
+      /* ---------------- walls, trims, cased openings ---------------- */
+      int ax = abs(n.x) > 0.5 ? 0 : 1;
+      float s = ax == 0 ? p.y : p.x;
+      vec2 gs = ax == 0 ? vec2(g1.y, g2.y) : vec2(g1.x, g2.x);
+      vec2 gz = vec2(g1.z, g2.z);
+      float zz = p.z, dTop = h.hA - zz;
+      int clsA = int(Wd(h.A).g * 255.0 + 0.5);
+      ivec2 td = ax == 0 ? ivec2(0, 1) : ivec2(1, 0);
+      vec3 T = ax == 0 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+      float sl0 = s / CS; float sc = (sl0 - floor(sl0)) * CS;
+      float hBl = ceilH(h.B - td), hBr = ceilH(h.B + td);
+      vp = p.xy + n.xy * 0.30;
+      shin = 30.0; specK = 0.45;
+
+      /* ao: floor / ceiling joints and inside corners */
+      ao = mix(0.78, 1.0, smoothstep(0.0, 0.38, zz)) * mix(0.86, 1.0, smoothstep(0.0, 0.32, dTop));
+      float fsA = sl0 - floor(sl0);
+      ao *= 1.0 - 0.45 * occ(h.A - td, 1.0) * (1.0 - smoothstep(0.0, 0.42, fsA * CS));
+      ao *= 1.0 - 0.45 * occ(h.A + td, 1.0) * (1.0 - smoothstep(0.0, 0.42, (1.0 - fsA) * CS));
+
+      if(clsA == 1){
+        /* jamb of a cased opening: plain painted reveal */
+        alb = PAINT * 0.97; shin = 40.0; specK = 0.6;
+        ao *= mix(0.9, 1.0, smoothstep(0.0, 0.2, dTop));
+      } else {
+        float zn, zn1, zn2;
+        float e = 0.004;
+        float P0 = relief(zz, dTop, sc, h.hB, hBl, hBr, zn);
+        float Pz = relief(zz + e, dTop - e, sc, h.hB, hBl, hBr, zn1);
+        float Ps = relief(zz, dTop, sc + e, h.hB, hBl, hBr, zn2);
+        vec2 dP = vec2((Ps - P0) / e, (Pz - P0) / e);
+        vec2 uvw = vec2(s + (ax == 0 ? 0.0 : 0.37), zz) / 0.8;
+        vec2 gx = vec2(gs.x, gz.x) / 0.8, gy = vec2(gs.y, gz.y) / 0.8;
+        vec4 tw = textureGrad(uWallA, uvw, gx, gy);
+        vec4 tnw = textureGrad(uWallN, uvw, gx, gy);
+        float trim = step(0.5, zn);
+        vec2 slope = mix((tnw.xy * 2.0 - 1.0) * 0.8, -dP, trim);
+        N = normalize(n + T * slope.x + vec3(0.0, 0.0, slope.y));
+
+        /* wallpaper: seams every roll width, tone drift per roll, soft mottling */
+        float rs = (s + 0.21) / 0.53;
+        float seam = 1.0 - smoothstep(0.0, 0.0035, min(fract(rs), 1.0 - fract(rs)) * 0.53);
+        float roll = hash11(floor(rs) + float(ax) * 31.0);
+        vec4 nw = textureLod(uNoise, vec2(s * 0.31, zz * 0.31) + vec2(float(ax) * 0.5, 0.0), 1.0);
+        vec3 wp = z.wall * tw.rgb * 1.19 * (0.988 + 0.024 * roll) * (0.97 + 0.06 * nw.g);
+        wp *= 1.0 - 0.06 * seam;
+        float kick = (1.0 - smoothstep(0.10, 0.50, zz)) * z.dirt * 0.07 * smoothstep(0.35, 0.7, nw.b);
+        wp *= 1.0 - kick;
+        vec3 paint = PAINT * (0.97 + 0.03 * nw.r);
+        alb = mix(wp, paint, trim);
+        shin = mix(26.0, 60.0, trim); specK = mix(0.40, 0.85, trim);
+        float junction = trim * (1.0 - smoothstep(0.0, 0.006, abs(zz - 0.14)));
+        ao *= 1.0 - 0.25 * junction;
+        ao *= mix(1.0, tnw.a, 1.0 - trim);
+      }
+    }
+
+    /* ---------- light it ---------- */
+    vec3 diff, spec, fd, fs2;
+    directLight(p, N, V, shin, vp, useVis, ceilF, z.lamp, diff, spec);
+    flashLight(p, N, V, shin, fd, fs2);
+    vec3 amb = texture(uAmb, vp / (CS * 256.0)).rgb * uGI + vec3(0.025, 0.022, 0.012);
+    if(ceilF) amb *= 1.35;
+    col = alb * ((diff + fd) * mix(1.0, ao, 0.40) + amb * ao) * (1.0 / PI);
+    col += (spec + fs2) * specK * ao;
+    col += emis;
+
+    float T = exp(-dist * 0.011);
+    col = mix(FOGC, col, T);
   }
   col = min(col, vec3(60.0));
-  if (any(isnan(col))) col = vec3(0.0);
-  fragColor = vec4(col, kind != 0 ? t : 10000.0);
+  fragColor = vec4(col * uExposure, dist);
+}`;
+
+/* ===================== 5. GLSL : TEMPORAL AA / BLOOM / TAPE ===================== */
+/* temporal super-sampling: the scene is jittered every frame, history is reprojected
+   with the exact hit distance and clamped to the local neighbourhood (no ghosting) */
+const FS_TAA = `#version 300 es
+precision highp float; precision highp sampler2D;
+in vec2 vUv; out vec4 o;
+uniform sampler2D uCur, uHist;
+uniform vec3 uPos, uFwd, uRight, uUp, uPPos, uPFwd, uPRight, uPUp;
+uniform vec2 uTan, uPTan, uRes;
+uniform float uBlend, uReset;
+vec3 tm(vec3 c){ return c / (1.0 + max(c.r, max(c.g, c.b))); }
+vec3 itm(vec3 c){ float m = min(max(c.r, max(c.g, c.b)), 0.9995); return c / (1.0 - m); }
+void main(){
+  ivec2 fc = ivec2(gl_FragCoord.xy);
+  ivec2 lim = ivec2(uRes) - 1;
+  vec4 c0 = texelFetch(uCur, fc, 0);
+  vec3 cc = tm(c0.rgb);
+  vec3 mn = cc, mx = cc;
+  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+    vec3 s = tm(texelFetch(uCur, clamp(fc + ivec2(i, j), ivec2(0), lim), 0).rgb);
+    mn = min(mn, s); mx = max(mx, s);
+  }
+  vec2 nd = (vec2(fc) + 0.5) / uRes * 2.0 - 1.0;
+  vec3 rd = normalize(uFwd + nd.x * uTan.x * uRight + nd.y * uTan.y * uUp);
+  vec3 wp = uPos + rd * c0.a;
+  vec3 v = wp - uPPos;
+  float z = dot(v, uPFwd);
+  vec3 res = cc;
+  if(z > 0.01 && uReset < 0.5){
+    vec2 puv = vec2(dot(v, uPRight) / (z * uPTan.x), dot(v, uPUp) / (z * uPTan.y)) * 0.5 + 0.5;
+    if(puv.x > 0.001 && puv.y > 0.001 && puv.x < 0.999 && puv.y < 0.999){
+      vec3 hs = tm(texture(uHist, puv).rgb);
+      hs = clamp(hs, mn, mx);
+      res = mix(hs, cc, uBlend);
+    }
+  }
+  o = vec4(itm(res), c0.a);
 }`;
 
 const FS_DOWN = `#version 300 es
-precision highp float;
-uniform sampler2D uSrc; uniform vec2 uTexel;
-in vec2 vUV; out vec4 o;
-void main(){
-  vec3 s = vec3(0.0);
-  for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++){
-    s += min(texture(uSrc, vUV + vec2(float(x), float(y))*uTexel).rgb, vec3(4.0));
-  }
-  o = vec4(s/9.0, 1.0);
-}`;
-
-const FS_BLUR = `#version 300 es
-precision highp float;
-uniform sampler2D uSrc; uniform vec2 uDir; uniform float uThr;
-in vec2 vUV; out vec4 o;
-vec3 fetch(vec2 uv){
-  vec3 c = textureLod(uSrc, uv, 0.0).rgb;
-  if (uThr > 0.0){
-    float l = max(c.r, max(c.g, c.b));
-    c *= smoothstep(uThr, uThr*2.2, l);
-  }
-  return c;
-}
-void main(){
-  float w[5] = float[5](0.2270270, 0.1945946, 0.1216216, 0.0540541, 0.0162162);
-  vec3 s = fetch(vUV)*w[0];
-  for (int i = 1; i < 5; i++){
-    vec2 off = uDir*float(i);
-    s += fetch(vUV + off)*w[i];
-    s += fetch(vUV - off)*w[i];
-  }
-  o = vec4(s, 1.0);
-}`;
-
-const FS_EXPO = `#version 300 es
-precision highp float;
-uniform sampler2D uPrev, uSrc; uniform float uDt, uLod;
-in vec2 vUV; out vec4 o;
-void main(){
-  vec3 avg = textureLod(uSrc, vec2(0.5), uLod).rgb;
-  float lum = dot(avg, vec3(0.3, 0.55, 0.15));
-  float target = clamp(pow(0.28/max(lum, 1e-3), 0.78), 0.35, 2.6);
-  float prev = texture(uPrev, vec2(0.5)).r;
-  float k = 1.0 - exp(-uDt*1.4);
-  o = vec4(mix(prev, target, k), 0.0, 0.0, 1.0);
-}`;
-
-const FS_FINAL = `#version 300 es
-precision highp float;
-uniform sampler2D uScene, uB1, uB2, uExpo;
-uniform vec2 uRes;
-uniform float uTime, uExposure, uBloom, uVHS, uGrain;
-in vec2 vUV; out vec4 o;
-float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y)*p3.z); }
-vec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }
-void main(){
-  vec2 uv = vUV;
-  vec2 d = uv - 0.5;
-  float r2 = dot(d, d);
-  float glitch = step(0.985, hash(vec2(floor(uv.y*60.0), floor(uTime*3.0))));
-  uv.x += uVHS*(sin(uv.y*220.0 + uTime*3.0)*0.0004 + (hash(vec2(floor(uv.y*240.0), floor(uTime*8.0))) - 0.5)*0.0012*glitch);
-  vec2 ca = d*r2*(0.010 + 0.012*uVHS);
-  vec3 col;
-  col.r = texture(uScene, uv + ca).r;
-  col.g = texture(uScene, uv).g;
-  col.b = texture(uScene, uv - ca).b;
-  if (uVHS > 0.0){
-    vec2 px = vec2(1.5/uRes.x, 0.0);
-    vec3 sm = 0.5*(texture(uScene, uv + px*2.0).rgb + texture(uScene, uv - px*2.0).rgb);
-    col = mix(col, sm, 0.35*uVHS);
-  }
-  vec3 bl = texture(uB1, uv).rgb*0.6 + texture(uB2, uv).rgb*1.0;
-  float ex = texture(uExpo, vec2(0.5)).r*uExposure;
-  col = (col + bl*uBloom*0.5)*ex;
-  col = aces(col);
-  col = pow(col, vec3(1.0/2.2));
-  col = mix(vec3(dot(col, vec3(0.3, 0.59, 0.11))), col, 1.08);
-  float vig = 1.0 - smoothstep(0.3, 0.95, length(d)*1.35);
-  col *= mix(0.55, 1.0, vig);
-  col *= 1.0 - uVHS*0.07*(0.5 + 0.5*sin(uv.y*uRes.y*3.14159));
-  float g = hash(gl_FragCoord.xy + fract(uTime)*137.0) - 0.5;
-  col += g*(uGrain*0.09 + 0.004);
-  o = vec4(col, 1.0);
-}`;
-
-/* =====================================================================
-   4. WebGL2 setup, render targets, world texture streaming
-===================================================================== */
-const canvas = $('c');
-function fatal(msg){ const e = $('err'); e.style.display = 'flex'; e.textContent = msg; throw new Error(msg); }
-
-const gl = canvas.getContext('webgl2', { antialias:false, alpha:false, depth:false, stencil:false, powerPreference:'high-performance' });
-if (!gl) fatal('This game needs WebGL2.\nPlease use a recent version of Chrome, Edge, Firefox or Safari.');
-const extCBF = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float');
-if (!extCBF) fatal('Your GPU/browser does not support floating point render targets (EXT_color_buffer_float).');
-
-function compile(type, src){
-  const s = gl.createShader(type);
-  gl.shaderSource(s, src); gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) fatal('Shader compile error:\n' + gl.getShaderInfoLog(s) + '\n\n' + src.split('\n').map((l,i)=>(i+1)+': '+l).join('\n'));
+precision highp float; precision highp sampler2D;
+in vec2 vUv; out vec4 o;
+uniform sampler2D uTex; uniform vec2 uTexel; uniform float uFirst;
+vec3 tx(float x, float y){
+  vec3 s = texture(uTex, vUv + vec2(x, y) * uTexel).rgb;
+  if(uFirst > 0.5) s /= 1.0 + 0.12 * max(s.r, max(s.g, s.b));
   return s;
 }
-function makeProgram(fs){
-  const p = gl.createProgram();
-  gl.attachShader(p, compile(gl.VERTEX_SHADER, VS_FULL));
-  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) fatal('Program link error:\n' + gl.getProgramInfoLog(p));
-  p._u = {};
-  return p;
-}
-const PR = {
-  main:  makeProgram(FS_MAIN),
-  down:  makeProgram(FS_DOWN),
-  blur:  makeProgram(FS_BLUR),
-  expo:  makeProgram(FS_EXPO),
-  final: makeProgram(FS_FINAL)
-};
-function ul(p, n){ const u = p._u; return n in u ? u[n] : (u[n] = gl.getUniformLocation(p, n)); }
-const u1f = (p,n,a)=>gl.uniform1f(ul(p,n),a), u1i = (p,n,a)=>gl.uniform1i(ul(p,n),a);
-const u2f = (p,n,a,b)=>gl.uniform2f(ul(p,n),a,b), u3f = (p,n,a,b,c)=>gl.uniform3f(ul(p,n),a,b,c);
+void main(){
+  vec3 A = tx(-2.,-2.), B = tx(0.,-2.), C = tx(2.,-2.), D = tx(-1.,-1.), E = tx(1.,-1.), F = tx(-2.,0.), G = tx(0.,0.),
+       H = tx(2.,0.), I = tx(-1.,1.), J = tx(1.,1.), K = tx(-2.,2.), L = tx(0.,2.), M = tx(2.,2.);
+  vec3 r = (D + E + I + J) * 0.125 + (A + B + F + G) * 0.03125 + (B + C + G + H) * 0.03125 + (F + G + K + L) * 0.03125 + (G + H + L + M) * 0.03125;
+  o = vec4(r, 1.0);
+}`;
+const FS_UP = `#version 300 es
+precision highp float; precision highp sampler2D;
+in vec2 vUv; out vec4 o;
+uniform sampler2D uTex; uniform vec2 uTexel; uniform float uWeight;
+void main(){
+  vec3 s = vec3(0.0);
+  s += texture(uTex, vUv + uTexel * vec2(-1., -1.)).rgb; s += texture(uTex, vUv + uTexel * vec2(0., -1.)).rgb * 2.0; s += texture(uTex, vUv + uTexel * vec2(1., -1.)).rgb;
+  s += texture(uTex, vUv + uTexel * vec2(-1.,  0.)).rgb * 2.0; s += texture(uTex, vUv).rgb * 4.0; s += texture(uTex, vUv + uTexel * vec2(1., 0.)).rgb * 2.0;
+  s += texture(uTex, vUv + uTexel * vec2(-1.,  1.)).rgb; s += texture(uTex, vUv + uTexel * vec2(0., 1.)).rgb * 2.0; s += texture(uTex, vUv + uTexel * vec2(1., 1.)).rgb;
+  o = vec4(s * (uWeight / 16.0), 1.0);
+}`;
 
-function makeTex(w, h, internal, fmt, type, filter){
+/* ---------- the tape pass: warp, bandwidth loss, tracking, noise ----------
+   Order matters: geometry warp first (so the OSD bends with the picture), then
+   luma / chroma split with different bandwidths, then noise on top.        */
+const FS_VHS = `#version 300 es
+precision highp float; precision highp sampler2D;
+in vec2 vUv; out vec4 o;
+uniform sampler2D uScene, uBloom, uOsd;
+uniform vec2 uRes;
+uniform float uTime, uVhs, uWarp, uGrain, uBloomAmt, uOsdOn;
+
+float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float h11(float p){ p = fract(p * .1031); p *= p + 33.33; p *= p + p; return fract(p); }
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+vec3 disp(vec3 c){ return pow(aces(c), vec3(1.0 / 2.2)); }
+vec3 rgb2yiq(vec3 c){ return vec3(dot(c, vec3(.299, .587, .114)), dot(c, vec3(.596, -.274, -.322)), dot(c, vec3(.211, -.523, .312))); }
+vec3 yiq2rgb(vec3 y){ return vec3(y.x + .956 * y.y + .621 * y.z, y.x - .272 * y.y - .647 * y.z, y.x - 1.106 * y.y + 1.703 * y.z); }
+
+void main(){
+  vec2 uv = vUv;
+  float t = uTime;
+  vec2 c = uv * 2.0 - 1.0;
+
+  /* --- picture geometry: gentle tube curvature + tape transport wobble --- */
+  float k = 0.055 * uWarp;
+  vec2 cs = c * vec2(0.85, 1.0);
+  float r2 = dot(cs, cs);
+  vec2 cw = c * (1.0 + k * r2) / (1.0 + k);
+  vec2 uvw = cw * 0.5 + 0.5;
+
+  float ev   = step(fract(t / 17.0 + 0.31), 0.035) * uVhs;                 /* a short tracking slip every ~17 s */
+  float yb   = fract(t * 0.045 + 0.2);
+  float band = exp(-pow((uv.y - yb) / 0.035, 2.0));
+  float wob  = (h11(floor(uv.y * 240.0) + floor(t * 50.0)) - 0.5) * 0.0011 * uVhs;
+  float wave = sin(uv.y * 2.6 + t * 0.55) * 0.0007 * uWarp + sin(uv.y * 9.0 + t * 1.7) * 0.0003 * uWarp;
+  float bot  = pow(clamp(1.0 - uv.y / 0.075, 0.0, 1.0), 2.0) * 0.014 * uWarp * (0.65 + 0.35 * sin(t * 0.9));
+  float slip = ev * (band * 0.012 + (h11(floor(uv.y * 60.0) + floor(t * 20.0)) - 0.5) * 0.006);
+  uvw.x += wob + wave + bot + slip;
+  uvw.y += ev * band * 0.004;
+
+  vec2 em = smoothstep(vec2(0.0), vec2(0.004), uvw) * smoothstep(vec2(0.0), vec2(0.004), 1.0 - uvw);
+  float inside = em.x * em.y;
+  vec2 sp = clamp(uvw, vec2(0.001), vec2(0.999));
+  vec2 px = 1.0 / uRes;
+
+  /* --- colour fringing + bloom on the centre tap --- */
+  float ca = (0.0006 + 0.0016 * r2) * (0.35 + uVhs);
+  vec3 cen = vec3(texture(uScene, sp + vec2(ca, 0.0)).r, texture(uScene, sp).g, texture(uScene, sp - vec2(ca, 0.0)).b);
+  cen += texture(uBloom, sp).rgb * uBloomAmt;
+  vec3 cd = disp(cen);
+
+  /* --- luma keeps more bandwidth than chroma (and rings a little) --- */
+  float Yl = rgb2yiq(disp(texture(uScene, sp + vec2(px.x * 1.5, 0.0)).rgb)).x;
+  float Yr = rgb2yiq(disp(texture(uScene, sp - vec2(px.x * 1.5, 0.0)).rgb)).x;
+  vec3 yc = rgb2yiq(cd);
+  float Y = mix(yc.x, (yc.x * 2.0 + Yl + Yr) * 0.25, 0.6 * uVhs) + (yc.x - 0.5 * (Yl + Yr)) * 0.55 * uVhs;
+  vec2 q1 = rgb2yiq(disp(texture(uScene, sp + vec2(px.x * 1.0, 0.0)).rgb)).yz;
+  vec2 q2 = rgb2yiq(disp(texture(uScene, sp - vec2(px.x * 2.0, 0.0)).rgb)).yz;
+  vec2 q3 = rgb2yiq(disp(texture(uScene, sp - vec2(px.x * 5.0, 0.0)).rgb)).yz;
+  vec2 q4 = rgb2yiq(disp(texture(uScene, sp - vec2(px.x * 8.0, 0.0)).rgb)).yz;
+  vec2 IQ = mix(yc.yz, yc.yz * 0.22 + q1 * 0.26 + q2 * 0.26 + q3 * 0.16 + q4 * 0.10, uVhs);
+  IQ *= mix(1.0, 0.88, uVhs);
+  vec3 col = yiq2rgb(vec3(Y, IQ));
+
+  /* --- raster --- */
+  float scan = 0.5 + 0.5 * cos(gl_FragCoord.y * 6.2831853 / max(2.0, uRes.y / 360.0));
+  col *= 1.0 - 0.050 * uVhs * scan;
+
+  /* --- noise: fine grain, chunky tape snow, head-switch band, slip band --- */
+  float lum = dot(col, vec3(.299, .587, .114));
+  float gn = h12(gl_FragCoord.xy + vec2(fract(t * 7.13) * 517.0, fract(t * 3.7) * 311.0)) - 0.5;
+  col += gn * 0.085 * uGrain * (1.15 - lum);
+  float sn = h12(vec2(floor(uv.x * 320.0), floor(uv.y * 480.0)) + floor(t * 30.0) * 7.1) - 0.5;
+  col += sn * 0.030 * uVhs;
+  float hs = 1.0 - smoothstep(0.0, 0.020 + bot * 0.8, uv.y);
+  col = mix(col, vec3(h12(vec2(floor(uv.x * 500.0), floor(t * 60.0))) * 0.8), hs * 0.7 * uVhs);
+  col = mix(col, vec3(h12(vec2(uv.x * 420.0, floor(uv.y * 200.0) + floor(t * 40.0)))), ev * band * 0.5);
+
+  /* --- tape text, warped with the picture --- */
+  if(uOsdOn > 0.5){
+    vec2 ou = vec2(sp.x, 1.0 - sp.y);
+    float a = max(texture(uOsd, ou).a, texture(uOsd, ou - vec2(px.x * 3.0, 0.0)).a * 0.45);
+    col = mix(col, vec3(0.93, 0.93, 0.88), a * 0.80);
+  }
+
+  /* --- vignette, lifted blacks, a little desaturation --- */
+  float vg = smoothstep(1.55, 0.45, length(c * vec2(0.9, 1.0)));
+  col *= mix(1.0, vg, 0.55);
+  col = col * 0.965 + 0.014;
+  col = mix(vec3(dot(col, vec3(.299, .587, .114))), col, 0.93);
+  col *= inside;
+  col += (h12(gl_FragCoord.xy + 0.5) - 0.5) / 255.0;
+  o = vec4(max(col, 0.0), 1.0);
+}`;
+
+/* ===================== 6. GL SETUP + RENDER PIPELINE ===================== */
+const CELL = 0.5;
+const canvas = $('gl');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance' });
+const extCBF = gl && gl.getExtension('EXT_color_buffer_float');
+if (gl) { gl.getExtension('EXT_color_buffer_half_float'); gl.getExtension('OES_texture_float_linear'); }
+const extAniso = gl && (gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'));
+const maxAniso = extAniso ? gl.getParameter(extAniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 1;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(s);
+    const lines = src.split('\n'); const m = /ERROR: \d+:(\d+)/.exec(log || '');
+    let ctx = ''; if (m) { const n = +m[1]; ctx = '\n  > ' + (lines[n - 1] || '').trim(); }
+    fail('Shader error: ' + log + ctx);
+  }
+  return s;
+}
+class Prog {
+  constructor(fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, VS_FULL));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) fail('Link error: ' + gl.getProgramInfoLog(p));
+    this.p = p; this.loc = {};
+  }
+  use() { gl.useProgram(this.p); return this; }
+  l(n) { if (!(n in this.loc)) this.loc[n] = gl.getUniformLocation(this.p, n); return this.loc[n]; }
+  i(n, v) { gl.uniform1i(this.l(n), v); return this; }
+  f(n, v) { gl.uniform1f(this.l(n), v); return this; }
+  v2(n, a, b) { gl.uniform2f(this.l(n), a, b); return this; }
+  v3(n, a) { gl.uniform3f(this.l(n), a[0], a[1], a[2]); return this; }
+  iv2(n, a, b) { gl.uniform2i(this.l(n), a, b); return this; }
+}
+function mkTex(w, h, ifmt, fmt, type, filter, wrap, data) {
   const t = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, t);
-  gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, fmt, type, null);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter === gl.NEAREST ? gl.NEAREST : gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt || gl.RGBA, type || gl.UNSIGNED_BYTE, data || null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter || gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter || gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap || gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap || gl.CLAMP_TO_EDGE);
   return t;
 }
-function makeFBO(tex){
+function mkFbo(texs) {
   const f = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, f);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) fatal('Framebuffer incomplete — float render targets unsupported.');
+  const bufs = [];
+  texs.forEach((t, i) => { gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, t, 0); bufs.push(gl.COLOR_ATTACHMENT0 + i); });
+  gl.drawBuffers(bufs);
+  const st = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  if (st !== gl.FRAMEBUFFER_COMPLETE) fail('Framebuffer incomplete: 0x' + st.toString(16));
   return f;
 }
-const rgba16 = (w, h, filter) => makeTex(w, h, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, filter || gl.LINEAR);
+const bindTex = (u, t) => { gl.activeTexture(gl.TEXTURE0 + u); gl.bindTexture(gl.TEXTURE_2D, t); };
+const tri = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+function halton(i, b) { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; }
 
-/* ---- world texture (ring buffer of baked cells around the player) ---- */
-const worldTex = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, worldTex);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32UI, WIN, WIN, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT, new Uint32Array(WIN*WIN*4));
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let pTex, pGI, pRelax, pScene, pTAA, pDown, pUp, pVHS;
+let worldTex, giFbo, ambFbo = [], ambTex = [], ambPing = 0, osdTex = null;
+const giTex = {}, tx = {};
+const RT = { w: 0, h: 0, cw: 0, ch: 0, hp: 0, histValid: false, tex: [], fbo: [] };
 
-const colBuf = new Uint32Array(WIN*4), rowBuf = new Uint32Array(WIN*4), allBuf = new Uint32Array(WIN*WIN*4);
-let winX = 1e9, winY = 1e9;
-function writeCol(i, ny){
-  for (let k = 0; k < WIN; k++){
-    const j = ny + k, c = getCell(i, j), o = (j & 63)*4;
-    colBuf[o] = c[0]; colBuf[o+1] = c[1]; colBuf[o+2] = c[2]; colBuf[o+3] = c[3];
+/* materials are synthesised on the GPU once at start-up, then mip-mapped with anisotropy */
+function genMaterials() {
+  const defs = [{ t: 0, s: 1024 }, { t: 1, s: 1024 }, { t: 2, s: 512, clamp: true }, { t: 3, s: 512 }];
+  const out = [];
+  gl.disable(gl.BLEND);
+  for (const d of defs) {
+    const a = mkTex(d.s, d.s, d.t < 3 ? gl.SRGB8_ALPHA8 : gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
+    const n = mkTex(d.s, d.s, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
+    const f = mkFbo([a, n]);
+    gl.viewport(0, 0, d.s, d.s);
+    pTex.use().i('uType', d.t).f('uSize', d.s);
+    tri();
+    for (const tex of [a, n]) {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      if (extAniso && d.t < 3) gl.texParameterf(gl.TEXTURE_2D, extAniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(16, maxAniso));
+      if (d.clamp) { gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(f);
+    out.push({ a, n });
   }
-  gl.bindTexture(gl.TEXTURE_2D, worldTex);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, i & 63, 0, 1, WIN, gl.RGBA_INTEGER, gl.UNSIGNED_INT, colBuf);
-}
-function writeRow(j, nx){
-  for (let k = 0; k < WIN; k++){
-    const i = nx + k, c = getCell(i, j), o = (i & 63)*4;
-    rowBuf[o] = c[0]; rowBuf[o+1] = c[1]; rowBuf[o+2] = c[2]; rowBuf[o+3] = c[3];
-  }
-  gl.bindTexture(gl.TEXTURE_2D, worldTex);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, j & 63, WIN, 1, gl.RGBA_INTEGER, gl.UNSIGNED_INT, rowBuf);
-}
-function fillAll(nx, ny){
-  for (let j = ny; j < ny + WIN; j++) for (let i = nx; i < nx + WIN; i++){
-    const c = getCell(i, j), o = ((j & 63)*WIN + (i & 63))*4;
-    allBuf[o] = c[0]; allBuf[o+1] = c[1]; allBuf[o+2] = c[2]; allBuf[o+3] = c[3];
-  }
-  gl.bindTexture(gl.TEXTURE_2D, worldTex);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, WIN, WIN, gl.RGBA_INTEGER, gl.UNSIGNED_INT, allBuf);
-}
-function syncWorld(pcx, pcy, force){
-  const nx = pcx - 32, ny = pcy - 32;
-  if (force || Math.abs(nx - winX) >= WIN || Math.abs(ny - winY) >= WIN){
-    fillAll(nx, ny);
-  } else {
-    if (nx > winX) for (let i = winX + WIN; i < nx + WIN; i++) writeCol(i, ny);
-    else if (nx < winX) for (let i = nx; i < winX; i++) writeCol(i, ny);
-    if (ny > winY) for (let j = winY + WIN; j < ny + WIN; j++) writeRow(j, nx);
-    else if (ny < winY) for (let j = ny; j < winY; j++) writeRow(j, nx);
-  }
-  winX = nx; winY = ny;
+  tx.carp = out[0]; tx.wall = out[1]; tx.ceil = out[2]; tx.noise = out[3].a;
 }
 
-/* ---- render targets ---- */
-let cw = 0, ch = 0, rw = 0, rh = 0, bw = 0, bh = 0, curBuf = 0;
-let sceneTex = [], sceneFBO = [], bA, bAF, b1, b1F, b2, b2F, c1, c1F, c2, c2F, expoTex = [], expoFBO = [], maxLod = 6;
-let bwC1 = 0, bhC1 = 0;
-let histReset = 3;
-function freeTargets(){
-  [...sceneTex, bA, b1, b2, c1, c2, ...expoTex].forEach(t => t && gl.deleteTexture(t));
-  [...sceneFBO, bAF, b1F, b2F, c1F, c2F, ...expoFBO].forEach(f => f && gl.deleteFramebuffer(f));
+function initGL() {
+  pTex = new Prog(FS_TEXGEN); pGI = new Prog(FS_GI); pRelax = new Prog(FS_RELAX); pScene = new Prog(FS_SCENE);
+  pTAA = new Prog(FS_TAA); pDown = new Prog(FS_DOWN); pUp = new Prog(FS_UP); pVHS = new Prog(FS_VHS);
+  genMaterials();
+
+  worldTex = mkTex(TWC, TWC, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.NEAREST, gl.REPEAT);
+  chunkHook = (x, y, buf) => { gl.bindTexture(gl.TEXTURE_2D, worldTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, CH, CH, gl.RGBA, gl.UNSIGNED_BYTE, buf); };
+
+  giTex.v0 = mkTex(256, 256, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
+  giTex.v1 = mkTex(256, 256, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
+  giTex.v2 = mkTex(256, 256, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
+  giTex.src = mkTex(256, 256, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.NEAREST, gl.REPEAT);
+  ambTex = [0, 1].map(() => mkTex(256, 256, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.REPEAT));
+  giFbo = mkFbo([giTex.v0, giTex.v1, giTex.v2, giTex.src]);
+  ambFbo = ambTex.map(t => mkFbo([t]));
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  osdTex = mkTex(4, 4, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.CLAMP_TO_EDGE);
+
+  pScene.use();
+  ['uWorld', 'uVis0', 'uVis1', 'uVis2', 'uAmb', 'uCarpA', 'uCarpN', 'uWallA', 'uWallN', 'uCeilA', 'uCeilN', 'uNoise'].forEach((n, i) => pScene.i(n, i));
 }
-function allocTargets(){
-  freeTargets();
+
+/* ---- screen sized targets ---- */
+let osdCv = null, osdCtx = null, osdLast = -1;
+function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  cw = Math.max(2, Math.floor(innerWidth*dpr)); ch = Math.max(2, Math.floor(innerHeight*dpr));
+  const cw = Math.max(16, Math.floor(innerWidth * dpr)), ch = Math.max(16, Math.floor(innerHeight * dpr));
   canvas.width = cw; canvas.height = ch;
-  rw = Math.max(64, Math.floor(cw*cfg.scale)); rh = Math.max(64, Math.floor(ch*cfg.scale));
-  sceneTex = [rgba16(rw, rh), rgba16(rw, rh)];
-  sceneFBO = sceneTex.map(makeFBO);
-  bw = Math.max(32, Math.min(640, Math.floor(cw/4))); bh = Math.max(32, Math.floor(bw*ch/cw));
-  bA = rgba16(bw, bh, gl.LINEAR_MIPMAP_LINEAR); bAF = makeFBO(bA);
-  b1 = rgba16(bw, bh); b1F = makeFBO(b1);
-  b2 = rgba16(bw, bh); b2F = makeFBO(b2);
-  bwC1 = Math.max(16, bw >> 1); bhC1 = Math.max(16, bh >> 1);
-  c1 = rgba16(bwC1, bhC1); c1F = makeFBO(c1);
-  c2 = rgba16(bwC1, bhC1); c2F = makeFBO(c2);
-  maxLod = Math.floor(Math.log2(Math.max(bw, bh)));
-  expoTex = [rgba16(1, 1), rgba16(1, 1)];
-  expoFBO = expoTex.map(makeFBO);
-  for (const t of expoTex){
-    gl.bindTexture(gl.TEXTURE_2D, t);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array([1, 1, 1, 1]));
+  const w = Math.max(16, Math.floor(cw * S.scale)), h = Math.max(16, Math.floor(ch * S.scale));
+  RT.tex.forEach(t => gl.deleteTexture(t)); RT.fbo.forEach(f => gl.deleteFramebuffer(f));
+  RT.tex = []; RT.fbo = [];
+  const T = (ww, hh, filter) => { const t = mkTex(ww, hh, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, filter, gl.CLAMP_TO_EDGE); RT.tex.push(t); return t; };
+  const F = t => { const f = mkFbo([t]); RT.fbo.push(f); return f; };
+  RT.scene = T(w, h, gl.NEAREST); RT.sceneF = F(RT.scene);
+  RT.hist = [T(w, h, gl.LINEAR), T(w, h, gl.LINEAR)]; RT.histF = RT.hist.map(F);
+  RT.bl = []; RT.blF = [];
+  let bw = w, bh = h;
+  for (let i = 0; i < 5; i++) { bw = Math.max(2, bw >> 1); bh = Math.max(2, bh >> 1); const t = T(bw, bh, gl.LINEAR); RT.bl.push({ t, w: bw, h: bh }); RT.blF.push(F(t)); }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  RT.w = w; RT.h = h; RT.cw = cw; RT.ch = ch; RT.histValid = false; RT.hp = 0;
+  osdCv = osdCv || document.createElement('canvas');
+  osdCv.width = 1024; osdCv.height = Math.max(256, Math.round(1024 * ch / cw));
+  osdCtx = osdCv.getContext('2d'); osdLast = -1;
+  G.needResize = false;
+}
+
+/* ---- the little tape overlay: drawn into a texture so the shader can bend it ---- */
+const MONTHS = ['JAN.', 'FEB.', 'MAR.', 'APR.', 'MAY', 'JUN.', 'JUL.', 'AUG.', 'SEP.', 'OCT.', 'NOV.', 'DEC.'];
+function drawOsd() {
+  const sec = Math.floor(G.time);
+  if (sec === osdLast || !osdCtx) return;
+  osdLast = sec;
+  const c = osdCtx, W = osdCv.width, H = osdCv.height;
+  c.clearRect(0, 0, W, H);
+  const fs = Math.round(H * 0.052);
+  c.font = 'bold ' + fs + 'px "Courier New", monospace';
+  c.fillStyle = '#ffffff'; c.textBaseline = 'top'; c.textAlign = 'left';
+  c.fillText('PLAY', W * 0.045, H * 0.065);
+  const tx0 = W * 0.045 + fs * 2.75, ty0 = H * 0.065 + fs * 0.12;
+  c.beginPath(); c.moveTo(tx0, ty0); c.lineTo(tx0, ty0 + fs * 0.76); c.lineTo(tx0 + fs * 0.68, ty0 + fs * 0.38); c.closePath(); c.fill();
+  c.textAlign = 'right'; c.fillText('SP', W * 0.955, H * 0.065); c.textAlign = 'left';
+  const d = new Date(G.clock0 + sec * 1000);
+  let hh = d.getUTCHours(); const ap = hh >= 12 ? 'PM' : 'AM'; hh = hh % 12 || 12;
+  const mm = String(d.getUTCMinutes()).padStart(2, '0'), ss = String(d.getUTCSeconds()).padStart(2, '0');
+  c.fillText(ap + ' ' + hh + ':' + mm + ':' + ss, W * 0.045, H * 0.835 - fs * 1.25);
+  c.fillText(MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + ' ' + d.getUTCFullYear(), W * 0.045, H * 0.835);
+  gl.bindTexture(gl.TEXTURE_2D, osdTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, osdCv);
+}
+
+/* ---- camera description shared by scene + temporal pass ---- */
+const CAM = { pos: [0, 0, 1.6], fwd: [1, 0, 0], right: [0, -1, 0], up: [0, 0, 1], tanY: 0.8, aspect: 1.7, fd: [1, 0, 0], fpos: [0, 0, 1.6], flash: 0 };
+const PREV = { pos: [0, 0, 1.6], fwd: [1, 0, 0], right: [0, -1, 0], up: [0, 0, 1], tanY: 0.8, aspect: 1.7 };
+
+function warmLight(n) {
+  const ox = Math.floor(CAM.pos[0] / CELL) - 128, oy = Math.floor(CAM.pos[1] / CELL) - 128;
+  gl.disable(gl.BLEND);
+  bindTex(0, worldTex);
+  pGI.use().i('uWorld', 0).f('uTime', G.time).f('uLamp', G.lamp).iv2('uOrg', ox, oy);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, giFbo); gl.viewport(0, 0, 256, 256); tri();
+  pRelax.use().i('uWorld', 0).i('uAmbPrev', 1).i('uSrc', 2).f('uTime', G.time).iv2('uOrg', ox, oy).f('uDecay', 0.010).f('uSigma', 0.011);
+  bindTex(2, giTex.src);
+  for (let k = 0; k < n; k++) {
+    bindTex(1, ambTex[ambPing]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, ambFbo[1 - ambPing]); gl.viewport(0, 0, 256, 256); tri();
+    ambPing = 1 - ambPing;
   }
-  curBuf = 0; histReset = 3;
 }
 
-/* ---- camera state ---- */
-const cam = { x: 1.3, z: 1.3, y: 1.62, yaw: 0.6, pitch: 0.0 };
-const prevCam = { x: 0, y: 0, z: 0, f: [0,0,-1], r: [1,0,0], u: [0,1,0], tx: 1, ty: 1 };
-let flashOn = false, frameNo = 0;
-function halton(i, b){ let f = 1, r = 0; while (i > 0){ f /= b; r += f*(i % b); i = Math.floor(i/b); } return r; }
-function camBasis(yaw, pitch){
-  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-  const f = [cp*sy, sp, -cp*cy], r = [cy, 0, sy];
-  const u = [r[1]*f[2] - r[2]*f[1], r[2]*f[0] - r[0]*f[2], r[0]*f[1] - r[1]*f[0]];
-  return { f, r, u };
-}
-function fsDraw(){ gl.drawArrays(gl.TRIANGLES, 0, 3); }
-function bindTarget(f, w, h){ gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.viewport(0, 0, w, h); }
-function useTex(unit, tex){ gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); }
+function render() {
+  const cam = CAM;
+  /* 1. light field (visibility of every lamp) + bounce relaxation */
+  warmLight(G.frame < 4 ? 40 : 5);
 
-let expoIdx = 0, shotReq = false;
-function renderFrame(dt, time, histW, eyeY){
-  const wr = curBuf, hist = 1 - curBuf;
-  const bs = basisNow;
-  const tanH = Math.tan(cfg.fov*Math.PI/360), aspect = rw/rh;
-  const jit = histReset > 0 ? [0, 0] : [halton((frameNo % 16) + 1, 2) - 0.5, halton((frameNo % 16) + 1, 3) - 0.5];
+  /* 2. the scene itself */
+  bindTex(0, worldTex); bindTex(1, giTex.v0); bindTex(2, giTex.v1); bindTex(3, giTex.v2); bindTex(4, ambTex[ambPing]);
+  bindTex(5, tx.carp.a); bindTex(6, tx.carp.n); bindTex(7, tx.wall.a); bindTex(8, tx.wall.n);
+  bindTex(9, tx.ceil.a); bindTex(10, tx.ceil.n); bindTex(11, tx.noise);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, RT.sceneF); gl.viewport(0, 0, RT.w, RT.h);
+  const tanY = cam.tanY, tanX = tanY * cam.aspect;
+  const ji = (G.frame % 16) + 1;
+  const jx = S.taa ? halton(ji, 2) - 0.5 : 0, jy = S.taa ? halton(ji, 3) - 0.5 : 0;
+  pScene.use()
+    .v3('uPos', cam.pos).v3('uFwd', cam.fwd).v3('uRight', cam.right).v3('uUp', cam.up)
+    .v3('uFPos', cam.fpos).v3('uFDir', cam.fd)
+    .v2('uTan', tanX, tanY).v2('uRes', RT.w, RT.h).v2('uJit', jx, jy)
+    .f('uTime', G.time).f('uLamp', G.lamp).f('uExposure', S.exposure).f('uView', S.view).f('uGI', S.gi).f('uFlash', cam.flash);
+  tri();
 
-  /* 1. ray traced scene */
-  bindTarget(sceneFBO[wr], rw, rh);
-  const p = PR.main;
-  gl.useProgram(p);
-  useTex(0, worldTex); u1i(p, 'uWorld', 0);
-  useTex(1, sceneTex[hist]); u1i(p, 'uHist', 1);
-  u2f(p, 'uRes', rw, rh);
-  u3f(p, 'uCam', cam.x, eyeY, cam.z);
-  u3f(p, 'uPrevCam', prevCam.x, prevCam.y, prevCam.z);
-  u3f(p, 'uF', bs.f[0], bs.f[1], bs.f[2]); u3f(p, 'uR', bs.r[0], bs.r[1], bs.r[2]); u3f(p, 'uU', bs.u[0], bs.u[1], bs.u[2]);
-  u3f(p, 'uPF', prevCam.f[0], prevCam.f[1], prevCam.f[2]); u3f(p, 'uPR', prevCam.r[0], prevCam.r[1], prevCam.r[2]); u3f(p, 'uPU', prevCam.u[0], prevCam.u[1], prevCam.u[2]);
-  u2f(p, 'uTan', tanH*aspect, tanH); u2f(p, 'uPrevTan', prevCam.tx, prevCam.ty);
-  u2f(p, 'uJit', jit[0], jit[1]);
-  u1f(p, 'uTime', time); u1f(p, 'uHistW', histReset > 0 ? 0 : histW);
-  u1f(p, 'uFlash', flashOn ? 1 : 0); u1f(p, 'uFlick', cfg.flicker);
-  u1f(p, 'uPixAng', 2*tanH/rh);
-  u1i(p, 'uFrame', frameNo); u1i(p, 'uShadowN', cfg.shadows|0); u1i(p, 'uGI', cfg.gi|0);
-  fsDraw();
+  /* 3. temporal resolve */
+  const hp = RT.hp;
+  bindTex(0, RT.scene); bindTex(1, RT.hist[hp]);
+  pTAA.use().i('uCur', 0).i('uHist', 1)
+    .v3('uPos', cam.pos).v3('uFwd', cam.fwd).v3('uRight', cam.right).v3('uUp', cam.up)
+    .v3('uPPos', PREV.pos).v3('uPFwd', PREV.fwd).v3('uPRight', PREV.right).v3('uPUp', PREV.up)
+    .v2('uTan', tanX, tanY).v2('uPTan', PREV.tanY * PREV.aspect, PREV.tanY).v2('uRes', RT.w, RT.h)
+    .f('uBlend', S.taa ? 0.11 : 1.0).f('uReset', RT.histValid ? 0 : 1);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, RT.histF[1 - hp]); gl.viewport(0, 0, RT.w, RT.h);
+  tri();
+  const res = RT.hist[1 - hp];
+  RT.hp = 1 - hp; RT.histValid = true;
+  PREV.pos = cam.pos.slice(); PREV.fwd = cam.fwd.slice(); PREV.right = cam.right.slice(); PREV.up = cam.up.slice();
+  PREV.tanY = tanY; PREV.aspect = cam.aspect;
 
-  /* 2. downsample (mip chain used for auto exposure) */
-  bindTarget(bAF, bw, bh);
-  gl.useProgram(PR.down);
-  useTex(0, sceneTex[wr]); u1i(PR.down, 'uSrc', 0);
-  u2f(PR.down, 'uTexel', 1/bw, 1/bh);
-  fsDraw();
-  gl.bindTexture(gl.TEXTURE_2D, bA); gl.generateMipmap(gl.TEXTURE_2D);
+  /* 4. bloom: dual filter pyramid */
+  if (S.bloom) {
+    pDown.use().i('uTex', 0);
+    let src = res, sw = RT.w, sh = RT.h;
+    for (let i = 0; i < 5; i++) {
+      const L = RT.bl[i];
+      bindTex(0, src);
+      pDown.v2('uTexel', 1 / sw, 1 / sh).f('uFirst', i === 0 ? 1 : 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, RT.blF[i]); gl.viewport(0, 0, L.w, L.h); tri();
+      src = L.t; sw = L.w; sh = L.h;
+    }
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    pUp.use().i('uTex', 0).f('uWeight', 1.0);
+    for (let i = 4; i >= 1; i--) {
+      const A = RT.bl[i], B = RT.bl[i - 1];
+      bindTex(0, A.t);
+      pUp.v2('uTexel', 1 / A.w, 1 / A.h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, RT.blF[i - 1]); gl.viewport(0, 0, B.w, B.h); tri();
+    }
+    gl.disable(gl.BLEND);
+  }
 
-  /* 3. auto exposure */
-  const ne = 1 - expoIdx;
-  bindTarget(expoFBO[ne], 1, 1);
-  gl.useProgram(PR.expo);
-  useTex(0, expoTex[expoIdx]); u1i(PR.expo, 'uPrev', 0);
-  useTex(1, bA); u1i(PR.expo, 'uSrc', 1);
-  u1f(PR.expo, 'uDt', Math.min(dt, 0.1)); u1f(PR.expo, 'uLod', maxLod);
-  fsDraw();
-  expoIdx = ne;
+  /* 5. tape */
+  drawOsd();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, RT.cw, RT.ch);
+  bindTex(0, res); bindTex(1, S.bloom ? RT.bl[0].t : res); bindTex(2, osdTex);
+  pVHS.use().i('uScene', 0).i('uBloom', 1).i('uOsd', 2).v2('uRes', RT.cw, RT.ch)
+    .f('uTime', G.time).f('uVhs', S.vhs).f('uWarp', S.warp).f('uGrain', S.grain)
+    .f('uBloomAmt', S.bloom ? 0.055 : 0).f('uOsdOn', S.osd ? 1 : 0);
+  tri();
 
-  /* 4. bloom: bright-pass+H, V, then wider half-res H, V */
-  gl.useProgram(PR.blur);
-  u1i(PR.blur, 'uSrc', 0);
-  bindTarget(b1F, bw, bh); useTex(0, bA);  u2f(PR.blur, 'uDir', 1.6/bw, 0); u1f(PR.blur, 'uThr', 2.2); fsDraw();
-  bindTarget(b2F, bw, bh); useTex(0, b1);  u2f(PR.blur, 'uDir', 0, 1.6/bh); u1f(PR.blur, 'uThr', 0); fsDraw();
-  bindTarget(c1F, bwC1, bhC1); useTex(0, b2); u2f(PR.blur, 'uDir', 2.2/bwC1, 0); fsDraw();
-  bindTarget(c2F, bwC1, bhC1); useTex(0, c1); u2f(PR.blur, 'uDir', 0, 2.2/bhC1); fsDraw();
-
-  /* 5. composite to screen */
-  bindTarget(null, cw, ch);
-  const f = PR.final;
-  gl.useProgram(f);
-  useTex(0, sceneTex[wr]); u1i(f, 'uScene', 0);
-  useTex(1, b2); u1i(f, 'uB1', 1);
-  useTex(2, c2); u1i(f, 'uB2', 2);
-  useTex(3, expoTex[expoIdx]); u1i(f, 'uExpo', 3);
-  u2f(f, 'uRes', cw, ch);
-  u1f(f, 'uTime', time); u1f(f, 'uExposure', cfg.exposure); u1f(f, 'uBloom', cfg.bloom);
-  u1f(f, 'uVHS', cfg.vhs); u1f(f, 'uGrain', cfg.grain);
-  fsDraw();
-
-  if (shotReq){
-    shotReq = false;
+  if (G.shot) {
+    G.shot = false;
     canvas.toBlob(b => {
       if (!b) return;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(b); a.download = 'level0-' + Date.now() + '.png'; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    }, 'image/png');
-    toast('Screenshot saved');
+    });
+    toast('PHOTOGRAPH SAVED');
   }
+}
 
-  prevCam.x = cam.x; prevCam.y = eyeY; prevCam.z = cam.z;
-  prevCam.f = bs.f; prevCam.r = bs.r; prevCam.u = bs.u; prevCam.tx = tanH*aspect; prevCam.ty = tanH;
-  curBuf = hist;
-  if (histReset > 0) histReset--;
-  frameNo++;
-}
-let basisNow = camBasis(0, 0);
-
-/* =====================================================================
-   5. UI helpers, settings, toast
-===================================================================== */
-let toastTimer = 0;
-function toast(m){
-  const t = $('toast'); t.textContent = m; t.style.opacity = 1;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.opacity = 0, 1600);
-}
-let reallocTimer = 0;
-function scheduleRealloc(){ clearTimeout(reallocTimer); reallocTimer = setTimeout(allocTargets, 200); }
-function buildSettings(){
-  const root = $('settings'); root.innerHTML = '';
-  SET_DEFS.forEach(d => {
-    const row = document.createElement('div');
-    if (d.type === 'chk'){
-      row.className = 'chk';
-      row.innerHTML = `<input type="checkbox" id="s_${d.k}"><label for="s_${d.k}">${d.l}</label>`;
-      const inp = row.firstChild; inp.checked = !!cfg[d.k];
-      inp.onchange = () => { cfg[d.k] = inp.checked; saveCfg(); };
-    } else {
-      row.className = 'row';
-      row.innerHTML = `<label>${d.l}</label><input type="range" min="${d.min}" max="${d.max}" step="${d.step}"><output></output>`;
-      const inp = row.children[1], out = row.children[2];
-      const fmt = d.fmt || (v => (+v).toFixed(d.step < 1 ? 2 : 0));
-      inp.value = cfg[d.k]; out.textContent = fmt(cfg[d.k]);
-      inp.oninput = () => {
-        cfg[d.k] = +inp.value; out.textContent = fmt(cfg[d.k]); saveCfg();
-        if (d.k === 'scale') scheduleRealloc();
-        if (d.k === 'volume' && master && !muted) master.gain.value = cfg.volume;
-      };
-    }
-    root.appendChild(row);
-  });
-}
-document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
-  Object.assign(cfg, PRESETS[b.dataset.preset]); saveCfg(); buildSettings(); allocTargets(); toast('Preset: ' + b.dataset.preset);
-});
-
-/* =====================================================================
-   6. Audio — fluorescent hum, room tone, footsteps on carpet
-===================================================================== */
-let AC = null, master = null, reverb = null, humBus = null, noiseBuf = null, muted = false;
-function initAudio(){
-  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
-  try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-  } catch (e){ return; }
-  master = AC.createGain(); master.gain.value = muted ? 0 : cfg.volume; master.connect(AC.destination);
-  const len = AC.sampleRate*2;
-  noiseBuf = AC.createBuffer(1, len, AC.sampleRate);
-  const nd = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) nd[i] = Math.random()*2 - 1;
-  const irLen = AC.sampleRate*2.4, ir = AC.createBuffer(2, irLen, AC.sampleRate);
-  for (let c = 0; c < 2; c++){ const d = ir.getChannelData(c); for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/irLen, 3.2); }
-  reverb = AC.createConvolver(); reverb.buffer = ir;
-  const rg = AC.createGain(); rg.gain.value = 0.28; reverb.connect(rg); rg.connect(master);
-  humBus = AC.createGain(); humBus.gain.value = 0.0; humBus.connect(master);
-  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.connect(humBus);
-  [[60, .55, 'sawtooth'], [120, .32, 'square'], [180, .10, 'sawtooth'], [240, .05, 'triangle'], [59.4, .3, 'sine']].forEach(([f, g, t]) => {
-    const o = AC.createOscillator(); o.type = t; o.frequency.value = f;
-    const og = AC.createGain(); og.gain.value = g*0.35; o.connect(og); og.connect(lp); o.start();
-  });
-  const lfo = AC.createOscillator(); lfo.frequency.value = 0.17; const lg = AC.createGain(); lg.gain.value = 0.004; lfo.connect(lg); lg.connect(humBus.gain); lfo.start();
-  const ns = AC.createBufferSource(); ns.buffer = noiseBuf; ns.loop = true;
-  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 5200; bp.Q.value = 0.8;
-  const ng = AC.createGain(); ng.gain.value = 0.045; ns.connect(bp); bp.connect(ng); ng.connect(humBus); ns.start();
-  const rt = AC.createBufferSource(); rt.buffer = noiseBuf; rt.loop = true; rt.playbackRate.value = 0.3;
-  const rl = AC.createBiquadFilter(); rl.type = 'lowpass'; rl.frequency.value = 160;
-  const rgn = AC.createGain(); rgn.gain.value = 0.22; rt.connect(rl); rl.connect(rgn); rgn.connect(master); rt.start();
-}
-function footstep(strong){
-  if (!AC || muted) return;
-  const t = AC.currentTime, n = AC.createBufferSource(); n.buffer = noiseBuf;
-  n.playbackRate.value = 0.55 + Math.random()*0.3;
-  const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 420 + Math.random()*320;
-  const g = AC.createGain();
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((strong ? 0.5 : 0.34), t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
-  n.connect(f); f.connect(g); g.connect(master); g.connect(reverb);
-  n.start(t, Math.random()*1.5, 0.25);
-}
-function updateHum(){
-  if (!AC || !humBus) return;
-  const ci = Math.floor(cam.x/S), cj = Math.floor(cam.z/S);
-  let n = 0;
-  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++){
-    const c = getCell(ci + di, cj + dj)[2];
-    if (((c >>> 20) & 1) && (c & 3)) n++;
-  }
-  humBus.gain.setTargetAtTime(0.012 + 0.02*n, AC.currentTime, 0.4);
-}
-function setMuted(m){ muted = m; if (master) master.gain.value = m ? 0 : cfg.volume; toast(m ? 'Muted' : 'Sound on'); }
-
-/* =====================================================================
-   7. Player: input, collision, movement
-===================================================================== */
+/* ===================== 7. PLAYER, CAMERA, INPUT, LOOP ===================== */
+G.clock0 = Date.UTC(1997, 0, 14, 3, 14, 7) + Math.floor(Math.random() * 40000) * 1000;
+const P = { x: 0, y: 0, yaw: 0, pitch: 0, vx: 0, vy: 0, crouch: 0, fly: 1.6, noclip: false, flash: false, flashI: 0,
+            phase: 0, bobAmt: 0, steps: 0, side: 1, sprint: 0 };
 const keys = {};
-const touch = { mx:0, mz:0, run:false, move:null, look:null, sx:0, sy:0, lx:0, ly:0 };
-const isTouch = ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
-let active = false, noLock = false, dragging = false, noclip = false, crouch = false, showDbg = false;
-const player = { vx:0, vz:0, eye:1.62, bob:0, stepCount:0 };
-const boxBuf = [];
-let outX = 0, outZ = 0;
-const PR_RADIUS = 0.28;
+let locked = false, dragLook = false, mouseDown = false;
+const touch = { mx: 0, my: 0, id: -1, sx: 0, sy: 0, lid: -1, lx: 0, ly: 0 };
 
-function gatherBoxes(px, pz){
-  boxBuf.length = 0;
-  const ci = Math.floor(px/S), cj = Math.floor(pz/S);
-  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) cellBoxes(ci + di, cj + dj, boxBuf);
-}
-function resolve(px, pz, r){
-  for (let it = 0; it < 4; it++){
-    let moved = false;
-    for (let k = 0; k < boxBuf.length; k += 4){
-      const x0 = boxBuf[k], z0 = boxBuf[k+1], x1 = boxBuf[k+2], z1 = boxBuf[k+3];
-      const cx = Math.max(x0, Math.min(px, x1)), cz = Math.max(z0, Math.min(pz, z1));
-      const dx = px - cx, dz = pz - cz, d2 = dx*dx + dz*dz;
-      if (d2 < r*r){
-        if (d2 > 1e-10){ const d = Math.sqrt(d2), f = (r - d)/d; px += dx*f; pz += dz*f; }
-        else {
-          const l = px - x0, rr = x1 - px, t = pz - z0, b = z1 - pz, m = Math.min(l, rr, t, b);
-          if (m === l) px = x0 - r; else if (m === rr) px = x1 + r; else if (m === t) pz = z0 - r; else pz = z1 + r;
-        }
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  outX = px; outZ = pz;
-}
-function blockedAt(px, pz, r){
-  gatherBoxes(px, pz);
-  for (let k = 0; k < boxBuf.length; k += 4){
-    const cx = Math.max(boxBuf[k], Math.min(px, boxBuf[k+2])), cz = Math.max(boxBuf[k+1], Math.min(pz, boxBuf[k+3]));
-    if ((px-cx)*(px-cx) + (pz-cz)*(pz-cz) < r*r) return true;
-  }
+Snd.click = function () {
+  const c = this.ctx; if (!c || this.muted) return;
+  const t = c.currentTime;
+  const s = c.createBufferSource(); s.buffer = this.white;
+  const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 1.2;
+  const g = c.createGain(); g.gain.setValueAtTime(0.09, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.04);
+  s.connect(f); f.connect(g); g.connect(this.dry); s.start(t, Math.random(), 0.06);
+};
+
+function blocked(x, y, r, hr) {
+  const x0 = Math.floor((x - r) / CELL), x1 = Math.floor((x + r) / CELL);
+  const y0 = Math.floor((y - r) / CELL), y1 = Math.floor((y + r) / CELL);
+  for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) if (ceilAt(cx, cy) < hr) return true;
   return false;
 }
-function teleportTo(x, z){
-  cam.x = x; cam.z = z; player.vx = player.vz = 0;
-  syncWorld(Math.floor(x/S), Math.floor(z/S), true);
-  histReset = 3;
-}
-function teleportRandom(){
-  for (let n = 0; n < 400; n++){
-    const ci = Math.floor((Math.random()*2 - 1)*30000), cj = Math.floor((Math.random()*2 - 1)*30000);
-    const px = (ci + 0.5)*S + T*0.5, pz = (cj + 0.5)*S + T*0.5;
-    if (!blockedAt(px, pz, 0.45)){ teleportTo(px, pz); toast('Noclipped into somewhere else...'); return; }
-  }
-}
-function newWorld(){
-  SEED = ((Math.random()*9e5)|0) + 1000;
-  try { history.replaceState(null, '', '#' + SEED); } catch(e){}
-  cellCache.clear();
-  cam.yaw = 0.6; cam.pitch = 0;
-  teleportTo(1.3, 1.3);
-  $('seedInfo').textContent = 'World seed ' + SEED + '  (add #' + SEED + ' to the URL to revisit it)';
-  toast('New world generated');
-}
-$('newWorld').onclick = newWorld;
 
-function openMenu(){
-  active = false; $('menu').style.display = 'flex';
-  if (document.pointerLockElement) document.exitPointerLock();
-  for (const k in keys) keys[k] = false;
-  touch.mx = touch.mz = 0;
-}
-function startGame(){
-  $('menu').style.display = 'none'; active = true;
-  initAudio();
-  if (isTouch){ noLock = true; $('touch').style.display = 'block'; $('touch').style.pointerEvents = 'none'; }
-  else {
-    try {
-      const r = canvas.requestPointerLock();
-      if (r && r.catch) r.catch(() => { noLock = true; });
-    } catch (e){ noLock = true; }
+let envT = 0, envOpen = 0.3, envLight = 0, dbgT = 0;
+function update(dt) {
+  /* crouch (and refuse to stand up under a low header) */
+  let want = !!keys.KeyC && !P.noclip;
+  if (!want && P.crouch > 0.4 && blocked(P.x, P.y, 0.27, 1.9)) want = true;
+  P.crouch += ((want ? 1 : 0) - P.crouch) * Math.min(1, dt * 8);
+  const eyeBase = P.noclip ? P.fly : lerp(1.62, 1.02, P.crouch);
+
+  /* intent */
+  let fx = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0) - touch.my;
+  let sx = ((keys.KeyD || keys.ArrowRight) ? 1 : 0) - ((keys.KeyA || keys.ArrowLeft) ? 1 : 0) + touch.mx;
+  const len = Math.hypot(fx, sx);
+  if (len > 1) { fx /= len; sx /= len; }
+  const run = (keys.ShiftLeft || keys.ShiftRight) && !want;
+  const speed = P.noclip ? (run ? 9 : 4.5) : want ? 1.1 : run ? 3.5 : 1.95;
+  const cy = Math.cos(P.yaw), sy = Math.sin(P.yaw);
+  const wx = (cy * fx + sy * sx) * speed, wy = (sy * fx - cy * sx) * speed;
+  const k = 1 - Math.exp(-dt * (len > 0 ? 7 : 9));            // velocity eases in and out, never snaps
+  P.vx += (wx - P.vx) * k; P.vy += (wy - P.vy) * k;
+  P.sprint += (((run && len > 0 && !P.noclip) ? 1 : 0) - P.sprint) * Math.min(1, dt * 4);
+
+  if (P.noclip) {
+    P.x += P.vx * dt; P.y += P.vy * dt;
+    P.fly = clamp(P.fly + ((keys.Space ? 1 : 0) - (keys.KeyC ? 1 : 0)) * 2.2 * dt, 0.4, 2.3);
+  } else {
+    const r = 0.27, hr = eyeBase + 0.12;
+    const nx = P.x + P.vx * dt; if (!blocked(nx, P.y, r, hr)) P.x = nx; else P.vx = 0;
+    const ny = P.y + P.vy * dt; if (!blocked(P.x, ny, r, hr)) P.y = ny; else P.vy = 0;
   }
+
+  /* stride: phase advances with distance walked, so sway is locked to the feet */
+  const sp = Math.hypot(P.vx, P.vy);
+  const mv = P.noclip ? 0 : clamp(sp / 2.2, 0, 1.2);
+  P.bobAmt += (mv - P.bobAmt) * Math.min(1, dt * 7);
+  if (!P.noclip) P.phase += sp * dt / 0.80 * Math.PI;
+  const st = Math.floor(P.phase / Math.PI);
+  if (st !== P.steps) {
+    P.steps = st;
+    if (!P.noclip && sp > 0.4) { Snd.step(0.55 + 0.45 * P.sprint, P.side); P.side = -P.side; }
+  }
+
+  /* world streaming */
+  const ccx = Math.floor(P.x / CELL), ccy = Math.floor(P.y / CELL);
+  ensureChunks(ccx, ccy, 2);
+
+  /* sound environment */
+  envT -= dt;
+  if (envT < 0) { envT = 0.4; envOpen = openness(P.x, P.y); envLight = lightProximity(P.x, P.y); }
+  Snd.update(dt, envOpen, envLight, G.lamp);
 }
-$('enterBtn').onclick = startGame;
-document.addEventListener('pointerlockerror', () => { noLock = true; });
+
+function buildCamera(dt) {
+  const t = G.time;
+  const bob = S.bob * P.bobAmt, sk = 0.65 + 0.45 * P.sprint;
+  const v = 0.5 * (1 - Math.cos(2 * P.phase));                   // 0 at heel strike, 1 mid stride
+  const cy = Math.cos(P.yaw), sy = Math.sin(P.yaw);
+  const vr = P.vx * sy - P.vy * cy;                              // speed to the right
+
+  let by = (v - 0.5) * 0.062 * bob * sk + Math.sin(t * 1.25) * 0.0022 * (1 - 0.6 * P.bobAmt);
+  const lat = Math.sin(P.phase) * 0.020 * bob * sk;
+  let roll = Math.sin(P.phase) * 0.0085 * bob * sk + Math.sin(t * 0.37) * 0.0008 - vr * 0.0018 * S.bob;
+  let pit = P.pitch - (0.5 - v) * 0.014 * bob * sk + Math.sin(t * 0.62) * 0.0013;
+  pit = clamp(pit, -1.52, 1.52);
+
+  const eyeBase = P.noclip ? P.fly : lerp(1.62, 1.02, P.crouch);
+  const cp = Math.cos(pit), spn = Math.sin(pit);
+  const f = [cy * cp, sy * cp, spn];
+  const r0 = [sy, -cy, 0];
+  const u0 = [r0[1] * f[2] - r0[2] * f[1], r0[2] * f[0] - r0[0] * f[2], r0[0] * f[1] - r0[1] * f[0]];
+  const cr = Math.cos(roll), sr = Math.sin(roll);
+  const right = [r0[0] * cr + u0[0] * sr, r0[1] * cr + u0[1] * sr, r0[2] * cr + u0[2] * sr];
+  const up = [u0[0] * cr - r0[0] * sr, u0[1] * cr - r0[1] * sr, u0[2] * cr - r0[2] * sr];
+
+  const aspect = RT.w > 0 ? RT.w / RT.h : 1.7;
+  const hfov = (S.fov + P.sprint * 5 - P.crouch * 2) * Math.PI / 180;
+  CAM.tanY = Math.tan(hfov / 2) / Math.max(aspect, 1.6);
+  CAM.aspect = aspect;
+  CAM.pos = [P.x + r0[0] * lat, P.y + r0[1] * lat, eyeBase + by];
+  CAM.fwd = f; CAM.right = right; CAM.up = up;
+
+  /* flashlight lags behind the head like a hand-held torch */
+  P.flashI += ((P.flash ? 1 : 0) - P.flashI) * Math.min(1, dt * 18);
+  const kf = 1 - Math.exp(-dt * 11);
+  let d = [CAM.fd[0] + (f[0] - CAM.fd[0]) * kf, CAM.fd[1] + (f[1] - CAM.fd[1]) * kf, CAM.fd[2] + (f[2] - CAM.fd[2]) * kf];
+  const dl = Math.hypot(d[0], d[1], d[2]) || 1; d = [d[0] / dl, d[1] / dl, d[2] / dl];
+  CAM.fd = d;
+  CAM.fpos = [CAM.pos[0] + right[0] * 0.17 - up[0] * 0.13 + f[0] * 0.10, CAM.pos[1] + right[1] * 0.17 - up[1] * 0.13 + f[1] * 0.10, CAM.pos[2] + right[2] * 0.17 - up[2] * 0.13 + f[2] * 0.10];
+  CAM.flash = P.flashI * (0.98 + 0.02 * Math.sin(t * 61.0));
+}
+
+/* ---- places ---- */
+function spawn() {
+  resetWorld();
+  const rx = Math.floor((Math.random() * 2 - 1) * 9000), ry = Math.floor((Math.random() * 2 - 1) * 9000);
+  const [cx, cy] = findOpen(rx, ry);
+  P.x = (cx + 0.5) * CELL; P.y = (cy + 0.5) * CELL;
+  P.yaw = Math.random() * TAU; P.pitch = 0; P.vx = P.vy = 0;
+  ensureChunks(cx, cy, 99999);
+  CAM.pos = [P.x, P.y, 1.62];
+  CAM.fd = [Math.cos(P.yaw), Math.sin(P.yaw), 0];
+  buildCamera(0.016);
+  RT.histValid = false;
+  warmLight(110);
+}
+function teleport() {
+  const el = $('load'); el.classList.remove('hide');
+  setTimeout(() => { spawn(); el.classList.add('hide'); toast('SOMEWHERE ELSE'); }, 40);
+}
+
+/* ---- menu / pointer lock ---- */
+function showMenu(show) { $('menu').classList.toggle('hide', !show); G.paused = show; if (show) { for (const k in keys) keys[k] = false; } }
+function enterGame() {
+  Snd.init(); Snd.vol = S.vol; G.started = true;
+  showMenu(false);
+  try { const r = canvas.requestPointerLock && canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { dragLook = true; }); } catch (e) { dragLook = true; }
+  if (('ontouchstart' in window) && !$('touchL').dataset.on) { $('touchL').dataset.on = 1; setupTouch(); }
+}
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement === canvas) noLock = false;
-  else if (active && !noLock) openMenu();
+  locked = document.pointerLockElement === canvas;
+  if (locked) { dragLook = false; canvas.style.cursor = 'none'; }
+  else if (G.started && !dragLook) showMenu(true);
 });
-document.addEventListener('mousemove', e => {
-  if (!active) return;
-  if (document.pointerLockElement === canvas || dragging){
-    cam.yaw += e.movementX*0.0022*cfg.sens;
-    cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch - e.movementY*0.0022*cfg.sens));
-  }
-});
-canvas.addEventListener('mousedown', () => { dragging = true; });
-addEventListener('mouseup', () => { dragging = false; });
+document.addEventListener('pointerlockerror', () => { dragLook = true; });
 
 addEventListener('keydown', e => {
-  if (e.code === 'F3'){ e.preventDefault(); showDbg = !showDbg; $('dbg').style.display = showDbg ? 'block' : 'none'; return; }
-  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'F3') { e.preventDefault(); G.showDbg = !G.showDbg; $('dbg').classList.toggle('hide', !G.showDbg); return; }
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+  const rep = e.repeat;
   keys[e.code] = true;
-  if (!active){ if (e.code === 'Enter') startGame(); return; }
-  if (e.repeat) return;
-  switch (e.code){
-    case 'KeyF': flashOn = !flashOn; toast(flashOn ? 'Flashlight on' : 'Flashlight off'); histReset = 1; break;
-    case 'KeyV': noclip = !noclip; cam.y = player.eye; toast(noclip ? 'Noclip: Space up / C down' : 'Noclip off'); break;
-    case 'KeyR': teleportRandom(); break;
-    case 'KeyM': setMuted(!muted); break;
-    case 'KeyP': shotReq = true; break;
-    case 'KeyC': crouch = true; break;
-    case 'Escape': if (noLock) openMenu(); break;
+  if (rep) return;
+  if (e.code === 'KeyM') { Snd.toggleMute(); return; }
+  if (e.code === 'Escape') { if (G.started && !locked) showMenu(!G.paused); return; }
+  if (G.paused) return;
+  switch (e.code) {
+    case 'KeyF': P.flash = !P.flash; Snd.click(); break;
+    case 'KeyV': P.noclip = !P.noclip; if (P.noclip) P.fly = 1.62; toast(P.noclip ? 'NOCLIP' : 'WALKING'); break;
+    case 'KeyR': teleport(); break;
+    case 'KeyP': G.shot = true; break;
+    case 'KeyH': S.osd = S.osd ? 0 : 1; saveSettings(); buildSettingsUI(); break;
   }
 });
-addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'KeyC') crouch = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseDown = false; });
+addEventListener('mousemove', e => {
+  if (G.paused) return;
+  if (locked || (dragLook && mouseDown)) {
+    const k = 0.0022 * S.sens;
+    P.yaw -= e.movementX * k; P.pitch = clamp(P.pitch - e.movementY * k, -1.5, 1.5);
+  }
+});
+canvas.addEventListener('mousedown', () => {
+  mouseDown = true;
+  if (!G.paused && G.started && !locked && !dragLook) { try { canvas.requestPointerLock(); } catch (e) {} }
+});
+addEventListener('mouseup', () => { mouseDown = false; });
+addEventListener('resize', () => { G.needResize = true; });
 
-/* touch controls: left half = move stick, right half = look */
-if (isTouch){
-  const stick = $('stick');
-  canvas.addEventListener('touchstart', e => {
-    if (!active) return; e.preventDefault();
-    for (const t of e.changedTouches){
-      if (t.clientX < innerWidth/2 && touch.move === null){
-        touch.move = t.identifier; touch.sx = t.clientX; touch.sy = t.clientY;
-        stick.style.display = 'block'; stick.style.left = (t.clientX - 55) + 'px'; stick.style.top = (t.clientY - 55) + 'px';
-      } else if (touch.look === null){
-        touch.look = t.identifier; touch.lx = t.clientX; touch.ly = t.clientY;
-      }
-    }
-  }, { passive:false });
-  canvas.addEventListener('touchmove', e => {
+function setupTouch() {
+  const L = $('touchL'), R = $('touchR');
+  L.classList.remove('hide'); R.classList.remove('hide');
+  L.addEventListener('touchstart', e => { const t = e.changedTouches[0]; touch.id = t.identifier; touch.sx = t.clientX; touch.sy = t.clientY; e.preventDefault(); }, { passive: false });
+  L.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) if (t.identifier === touch.id) { touch.mx = clamp((t.clientX - touch.sx) / 60, -1, 1); touch.my = clamp((t.clientY - touch.sy) / 60, -1, 1); }
     e.preventDefault();
-    for (const t of e.changedTouches){
-      if (t.identifier === touch.move){
-        const dx = (t.clientX - touch.sx)/50, dy = (t.clientY - touch.sy)/50;
-        touch.mx = Math.max(-1, Math.min(1, dx)); touch.mz = Math.max(-1, Math.min(1, -dy));
-        stick.firstElementChild.style.transform = `translate(${touch.mx*30}px,${-touch.mz*30}px)`;
-      } else if (t.identifier === touch.look){
-        cam.yaw += (t.clientX - touch.lx)*0.005*cfg.sens;
-        cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch - (t.clientY - touch.ly)*0.005*cfg.sens));
-        touch.lx = t.clientX; touch.ly = t.clientY;
-      }
+  }, { passive: false });
+  const endL = () => { touch.id = -1; touch.mx = touch.my = 0; };
+  L.addEventListener('touchend', endL); L.addEventListener('touchcancel', endL);
+  R.addEventListener('touchstart', e => { const t = e.changedTouches[0]; touch.lid = t.identifier; touch.lx = t.clientX; touch.ly = t.clientY; e.preventDefault(); }, { passive: false });
+  R.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) if (t.identifier === touch.lid) {
+      const k = 0.0052 * S.sens;
+      P.yaw -= (t.clientX - touch.lx) * k; P.pitch = clamp(P.pitch - (t.clientY - touch.ly) * k, -1.5, 1.5);
+      touch.lx = t.clientX; touch.ly = t.clientY;
     }
-  }, { passive:false });
-  const tend = e => {
-    for (const t of e.changedTouches){
-      if (t.identifier === touch.move){ touch.move = null; touch.mx = touch.mz = 0; stick.style.display = 'none'; }
-      if (t.identifier === touch.look) touch.look = null;
-    }
-  };
-  canvas.addEventListener('touchend', tend); canvas.addEventListener('touchcancel', tend);
-  $('tbFlash').addEventListener('touchstart', e => { e.preventDefault(); flashOn = !flashOn; histReset = 1; });
-  $('tbRun').addEventListener('touchstart', e => { e.preventDefault(); touch.run = !touch.run; $('tbRun').style.background = touch.run ? 'rgba(255,240,150,.4)' : ''; });
+    e.preventDefault();
+  }, { passive: false });
+  R.addEventListener('touchend', () => { touch.lid = -1; });
 }
 
-let basisPrevYaw = 0, basisPrevPitch = 0, histW = 0.9, hudTimer = 0, humTimer = 0;
-function update(dt){
-  const fx = Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = Math.cos(cam.yaw), rz = Math.sin(cam.yaw);
-  let mx = 0, mz = 0;
-  if (active){
-    mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touch.mx;
-    mz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + touch.mz;
-  } else {
-    cam.yaw += dt*0.025;
+/* ---- building power: a slow breath, and every few minutes it lets go for a moment ---- */
+G.lamp = 1;
+const LampFx = { t: 0, next: 70 + Math.random() * 110 };
+function updateLamp(dt) {
+  LampFx.next -= dt;
+  if (LampFx.next < 0 && LampFx.t <= 0 && G.started && !G.paused) {
+    LampFx.t = 0.5 + Math.random() * 0.6;
+    LampFx.next = 130 + Math.random() * 260;
+    Snd.powerThump();
   }
-  const len = Math.hypot(mx, mz);
-  if (len > 1){ mx /= len; mz /= len; }
-  const sprint = (keys.ShiftLeft || keys.ShiftRight || touch.run) && mz > 0.1;
-  const speed = noclip ? (sprint ? 12 : 5) : crouch ? 1.3 : sprint ? 4.4 : 2.5;
-  const k = 1 - Math.exp(-dt*(len > 0 ? 9 : 12));
-  player.vx += ((fx*mz + rx*mx)*speed - player.vx)*k;
-  player.vz += ((fz*mz + rz*mx)*speed - player.vz)*k;
-  let nx = cam.x + player.vx*dt, nz = cam.z + player.vz*dt;
-  if (!noclip){ gatherBoxes(nx, nz); resolve(nx, nz, PR_RADIUS); nx = outX; nz = outZ; }
-  const moved = Math.hypot(nx - cam.x, nz - cam.z);
-  cam.x = nx; cam.z = nz;
-
-  let eyeTarget;
-  if (noclip){
-    if (keys.Space) cam.y += dt*3; if (keys.KeyC) cam.y -= dt*3;
-    cam.y = Math.max(0.3, Math.min(H - 0.3, cam.y)); eyeTarget = cam.y; player.eye = cam.y;
-  } else {
-    eyeTarget = crouch ? 1.05 : 1.62;
-    player.eye += (eyeTarget - player.eye)*(1 - Math.exp(-dt*8));
+  let v = 1 + Math.sin(G.time * 0.31) * 0.008 + Math.sin(G.time * 0.083) * 0.006;
+  if (LampFx.t > 0) {
+    LampFx.t -= dt;
+    v *= 0.05 + 0.10 * Math.abs(Math.sin(G.time * 29));
   }
-  let bobY = 0;
-  if (!noclip && moved > 0.0005){
-    const prev = Math.floor(player.bob/Math.PI);
-    player.bob += moved*4.2;
-    const cur = Math.floor(player.bob/Math.PI);
-    if (cur !== prev && active) footstep(sprint);
-    bobY = -Math.abs(Math.sin(player.bob))*0.03*Math.min(1, moved/dt/2.5)*(sprint ? 1.4 : 1);
-  }
-  syncWorld(Math.floor(cam.x/S), Math.floor(cam.z/S), false);
-
-  const dyaw = Math.abs(cam.yaw - basisPrevYaw) + Math.abs(cam.pitch - basisPrevPitch);
-  basisPrevYaw = cam.yaw; basisPrevPitch = cam.pitch;
-  const lin = Math.hypot(player.vx, player.vz);
-  histW = 0.9*(1 - Math.max(0, Math.min(0.55, lin/7 + (dyaw/dt)/4)));
-  basisNow = camBasis(cam.yaw, cam.pitch + (noclip ? 0 : Math.sin(player.bob*2)*0.0015));
-  return player.eye + bobY;
+  G.lamp = v;
 }
 
-/* =====================================================================
-   8. Main loop with adaptive resolution
-===================================================================== */
-let lastT = performance.now(), emaMs = 16.7, adaptT = 0, upT = 0, autoCeil = 1, fps = 60, fpsAcc = 0, fpsN = 0;
-const BT_NAMES = ['Office rooms', 'Pillar hall', 'Corridors', 'Open floor'];
-function loop(now){
-  requestAnimationFrame(loop);
-  let dt = (now - lastT)/1000; lastT = now;
-  if (dt <= 0) return;
-  if (dt > 0.1) dt = 0.1;
-  const eyeY = update(dt);
-  renderFrame(dt, now/1000, histW, eyeY);
-
-  emaMs += (dt*1000 - emaMs)*0.06;
-  fpsAcc += dt; fpsN++;
-  if (fpsAcc > 0.5){ fps = fpsN/fpsAcc; fpsAcc = 0; fpsN = 0; }
-  adaptT += dt; upT += dt;
-  if (cfg.auto && active && frameNo > 120){
-    if (adaptT > 1.5 && emaMs > 21 && cfg.scale > 0.36){
-      autoCeil = Math.max(0.4, cfg.scale - 0.05);
-      cfg.scale = Math.max(0.35, +(cfg.scale - 0.05).toFixed(2)); adaptT = 0; upT = 0; allocTargets(); buildSettings();
-    } else if (upT > 8 && emaMs < 17.8 && cfg.scale < autoCeil - 0.001){
-      cfg.scale = Math.min(1, +(cfg.scale + 0.05).toFixed(2)); upT = 0; allocTargets(); buildSettings();
-    } else if (upT > 45){ autoCeil = Math.min(1, autoCeil + 0.1); upT = 0; }
-  }
-  humTimer += dt; if (humTimer > 0.35){ humTimer = 0; updateHum(); }
-  hudTimer += dt;
-  if (showDbg && hudTimer > 0.25){
-    hudTimer = 0;
-    const ci = Math.floor(cam.x/S), cj = Math.floor(cam.z/S), cell = getCell(ci, cj);
+/* ---- main loop ---- */
+let lastT = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, Math.max(0.0001, (now - lastT) / 1000)); lastT = now;
+  G.fps += (1 / dt - G.fps) * 0.05;
+  G.time += dt; G.frame++;
+  updateLamp(dt);
+  if (G.needResize) resize();
+  if (!G.paused) update(dt);
+  buildCamera(dt);
+  render();
+  if (G.showDbg && (dbgT -= dt) < 0) {
+    dbgT = 0.25;
+    const cx = Math.floor(P.x / CELL), cy2 = Math.floor(P.y / CELL);
     $('dbg').textContent =
-      'FPS ' + fps.toFixed(0) + '  (' + emaMs.toFixed(1) + ' ms)\n' +
-      'Render ' + rw + 'x' + rh + '  (' + Math.round(cfg.scale*100) + '%)  Screen ' + cw + 'x' + ch + '\n' +
-      'Cell ' + ci + ', ' + cj + '   Zone: ' + BT_NAMES[(cell[0] >> 12) & 3] + '\n' +
-      'Pos ' + cam.x.toFixed(1) + ', ' + cam.z.toFixed(1) + '   Seed ' + SEED + '\n' +
-      'Shadows ' + cfg.shadows + '  GI ' + cfg.gi + '  Cache ' + cellCache.size;
+      'fps    ' + G.fps.toFixed(0) + '\n' +
+      'render ' + RT.w + 'x' + RT.h + '  (' + RT.cw + 'x' + RT.ch + ' out)\n' +
+      'pos    ' + P.x.toFixed(1) + ', ' + P.y.toFixed(1) + '\n' +
+      'cell   ' + cx + ', ' + cy2 + '  ceiling ' + ceilAt(cx, cy2).toFixed(2) + ' m\n' +
+      'open   ' + envOpen.toFixed(2) + '   lamp ' + envLight.toFixed(2) + '\n' +
+      'noclip ' + (P.noclip ? 'on' : 'off') + '  flash ' + (P.flash ? 'on' : 'off');
   }
 }
 
-addEventListener('resize', scheduleRealloc);
-buildSettings();
-allocTargets();
-syncWorld(Math.floor(cam.x/S), Math.floor(cam.z/S), true);
-try { history.replaceState(null, '', '#' + SEED); } catch(e){}
-$('seedInfo').textContent = 'World seed ' + SEED + '  (add #' + SEED + ' to the URL to revisit it)';
-requestAnimationFrame(loop);
+function init() {
+  loadSettings(false); buildSettingsUI();
+  $('enter').addEventListener('click', enterGame);
+  $('reset').addEventListener('click', () => { loadSettings(true); saveSettings(); buildSettingsUI(); Snd.setVolume(S.vol); G.needResize = true; });
+  if (!gl) { $('load').textContent = 'WEBGL2 NOT AVAILABLE'; fail('This game needs WebGL2.'); return; }
+  if (!extCBF) { $('load').textContent = 'FLOAT TEXTURES NOT AVAILABLE'; fail('This game needs EXT_color_buffer_float (any recent desktop or mobile GPU has it).'); return; }
+  try {
+    initGL(); resize(); spawn();
+  } catch (err) { fail('Start-up failed: ' + (err && err.stack || err)); return; }
+  $('load').classList.add('hide');
+  showMenu(true);
+  lastT = performance.now();
+  requestAnimationFrame(frame);
+}
+setTimeout(init, 30);
+
+})();
+
 </script>
 </body>
 </html>
